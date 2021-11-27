@@ -32,11 +32,11 @@ FillReport {
 }
 
 POST /api/pokemon/card: buy/sell a card
-GET /api/pokemon/{card}/trade: view the latest 50 trades on each kind of card
-GET /api/pokemon/{id}/order: view the status of latest 50 orders of a specific trader
+GET /api/pokemon/trade/:card: view the latest 50 trades on each kind of card
+GET /api/pokemon/order/:id: view the status of latest 50 orders of a specific trader
 
 curl localhost:8080/api/pokemon/card -X POST -H "Content-type:application/json" -d @test-script/post.json
-curl -X GET localhost:8080/api/pokemon/:card/trade
+curl -X GET localhost:8080/api/pokemon/trade/:card
 curl -X GET localhost:8080/api/pokemon/order/:id
 
 Constraints:
@@ -57,7 +57,7 @@ Constraints:
 - Relational database (PostgreSQL, MySQL, ...)
 - Containerize (Docker)
 - Testing
-- Gracefully shutdown
+- Gracefully shutdown (server & client)
 ## Advanced Requirements:
 - Multithreading
 - Maximize performance of finishing 1M orders

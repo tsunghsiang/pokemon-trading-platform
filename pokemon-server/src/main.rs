@@ -7,7 +7,7 @@ mod data_type;
 async fn main() -> tide::Result<()> {
     let mut server = tide::new();
     server.at("/api/pokemon/card").post(user_request);
-    server.at("/api/pokemon/:card/trade").get(view_card_status);
+    server.at("/api/pokemon/trade/:card").get(view_card_status);
     server.at("/api/pokemon/order/:id").get(view_order_status);
     server.listen("127.0.0.1:8080").await?;
     Ok(())
