@@ -7,13 +7,13 @@ enum OrderStatus {
     Filled,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Side {
     Buy,
     Sell,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Card {
     Pikachu,
     Bulbasaur,
@@ -21,7 +21,7 @@ pub enum Card {
     Squirtle,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct RequestOrder {
     tm: DateTime<Utc>,
     side: Side,
