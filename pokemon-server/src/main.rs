@@ -5,6 +5,8 @@ use tide::Request;
 
 mod data_type;
 mod scheduler;
+mod trade_board;
+mod tx_board;
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {
@@ -21,10 +23,15 @@ async fn main() -> tide::Result<()> {
     std::thread::spawn(move || {
         let handler = Arc::clone(&activator);
         loop {
-            if let Some(req) = handler.lock().unwrap().order_queue.pop_front() {
-                //let order: RequestOrder = req.body_json();
-                // handler.lock().unwrap().order_queue.pop_front();
-                println!("{:?}", &req);
+            match handler.lock() {
+                Ok(mut res) => {
+                    if let Some(req) = res.order_queue.pop_front() {
+                        println!("{:?}", &req);
+                    }
+                }
+                Err(err) => {
+                    eprintln!("[ERROR] {}", err);
+                }
             }
         }
     });

@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use tide::prelude::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug)]
 enum OrderStatus {
@@ -7,13 +8,13 @@ enum OrderStatus {
     Filled,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Side {
     Buy,
     Sell,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Card {
     Pikachu,
     Bulbasaur,
@@ -21,8 +22,9 @@ pub enum Card {
     Squirtle,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct RequestOrder {
+    uuid: Uuid,
     tm: DateTime<Utc>,
     side: Side,
     order_px: f64,
