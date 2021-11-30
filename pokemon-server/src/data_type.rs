@@ -2,9 +2,16 @@ use chrono::{DateTime, Utc};
 use tide::prelude::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug)]
-enum OrderStatus {
-    Ordered,
+#[derive(Debug, Clone)]
+pub enum ProcessResult {
+    TxConfirmed,
+    TxFilled,
+    // add other status here based on real conditions
+}
+
+#[derive(Debug, Clone)]
+pub enum OrderStatus {
+    Confirmed,
     Filled,
 }
 
@@ -28,6 +35,7 @@ pub struct RequestOrder {
     tm: DateTime<Utc>,
     side: Side,
     order_px: f64,
+    vol: i32,
     card: Card,
     trader_id: i32,
 }

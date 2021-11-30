@@ -5,6 +5,7 @@ use tide::Request;
 
 mod data_type;
 mod scheduler;
+mod status_board;
 mod trade_board;
 mod tx_board;
 
