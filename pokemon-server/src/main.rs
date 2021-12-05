@@ -27,7 +27,8 @@ async fn main() -> tide::Result<()> {
             match handler.lock() {
                 Ok(mut res) => {
                     if let Some(req) = res.order_queue.pop_front() {
-                        println!("{:?}", &req);
+                        res.process(&req);
+                        // println!("{:?}", &req);
                     }
                 }
                 Err(err) => {

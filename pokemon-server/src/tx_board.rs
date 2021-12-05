@@ -1,22 +1,30 @@
-use crate::data_type::Card;
+use crate::data_type::{Card, Side};
 use std::collections::HashMap;
 use std::collections::LinkedList;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
-struct Tag {
+pub struct Tag {
     uuid: Uuid,
     id: i32,
 }
 
 impl Tag {
-    fn new(id: i32, uuid: Uuid) -> Self {
+    pub fn new(id: i32, uuid: Uuid) -> Self {
         Self { id, uuid }
+    }
+
+    pub fn get_uuid(self) -> Uuid {
+        self.uuid
+    }
+
+    pub fn get_id(self) -> i32 {
+        self.id
     }
 }
 
 #[derive(Debug, Clone)]
-struct Volume {
+pub struct Volume {
     vol: i32,
     traders: LinkedList<Tag>,
 }
@@ -27,6 +35,22 @@ impl Volume {
             vol: 0,
             traders: LinkedList::<Tag>::new(),
         }
+    }
+
+    pub fn get_vol(&self) -> &i32 {
+        &self.vol
+    }
+
+    pub fn set_vol(&mut self, vol: i32) {
+        self.vol = vol;
+    }
+
+    pub fn pop_trader(&mut self) -> Option<Tag> {
+        self.traders.pop_front()
+    }
+
+    pub fn push_trader(&mut self, tag: Tag) {
+        self.traders.push_back(tag);
     }
 }
 
@@ -52,11 +76,18 @@ impl CardBoard {
             sell: sell_map,
         }
     }
+
+    pub fn get_bs_board(&mut self, property: Side) -> &mut HashMap<i32, Volume> {
+        match property {
+            Side::Buy => &mut self.buy,
+            Side::Sell => &mut self.sell,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct TxBoard {
-    tx_board: HashMap<Card, CardBoard>,
+    content: HashMap<Card, CardBoard>,
 }
 
 impl TxBoard {
@@ -66,6 +97,10 @@ impl TxBoard {
         board.insert(Card::Bulbasaur, CardBoard::new());
         board.insert(Card::Charmander, CardBoard::new());
         board.insert(Card::Squirtle, CardBoard::new());
-        Self { tx_board: board }
+        Self { content: board }
+    }
+
+    pub fn get_board_content(&mut self) -> &mut HashMap<Card, CardBoard> {
+        &mut self.content
     }
 }

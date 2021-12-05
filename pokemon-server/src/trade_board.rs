@@ -12,6 +12,24 @@ pub struct Trade {
     tx_vol: i32,
 }
 
+impl Trade {
+    pub fn new(
+        tx_time: DateTime<Utc>,
+        buy_side: i32,
+        sell_side: i32,
+        tx_price: f64,
+        tx_vol: i32,
+    ) -> Self {
+        Self {
+            tx_time,
+            buy_side,
+            sell_side,
+            tx_price,
+            tx_vol,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct TradeBoard {
     board: HashMap<Card, LinkedList<Trade>>,
@@ -28,6 +46,17 @@ impl TradeBoard {
         Self {
             board: board,
             limit: 50,
+        }
+    }
+
+    pub fn add_trade(&mut self, card: &Card, trade: Trade) {
+        if let Some(res) = &mut self.board.get_mut(card) {
+            if (res.len() as i32) < self.limit {
+                res.push_back(trade);
+            } else {
+                res.pop_front();
+                res.push_back(trade);
+            }
         }
     }
 }

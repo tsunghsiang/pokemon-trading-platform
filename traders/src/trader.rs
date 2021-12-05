@@ -36,6 +36,7 @@ impl Trader {
             _ => Side::Buy,
         };
         let order_px = rand::thread_rng().gen_range(1..11) as f64;
+        let vol: i32 = 1;
         let card = match rand::thread_rng().gen_range(0..4) {
             0 => Card::Pikachu,
             1 => Card::Bulbasaur,
@@ -50,6 +51,7 @@ impl Trader {
                 "tm": tm,
                 "side": side,
                 "order_px": order_px,
+                "vol": vol,
                 "card": card,
                 "trader_id": &self.id
             }))?
