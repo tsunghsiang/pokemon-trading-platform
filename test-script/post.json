@@ -3,6 +3,7 @@
     "tm": "2017-07-01T14:59:55.711Z",
     "side": "Buy",
     "order_px": 1.00,
+    "vol": 1,
     "card": "Pikachu",
     "trader_id": 1
 }
