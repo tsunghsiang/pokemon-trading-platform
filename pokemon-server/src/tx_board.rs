@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::collections::LinkedList;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     uuid: Uuid,
     id: i32,
@@ -51,6 +51,10 @@ impl Volume {
 
     pub fn push_trader(&mut self, tag: Tag) {
         self.traders.push_back(tag);
+    }
+
+    pub fn get_trader_nums(&self) -> usize {
+        self.traders.len()
     }
 }
 
@@ -103,4 +107,43 @@ impl TxBoard {
     pub fn get_board_content(&mut self) -> &mut HashMap<Card, CardBoard> {
         &mut self.content
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::data_type::Side;
+    use crate::tx_board::{CardBoard, Tag, TxBoard, Volume};
+    use std::cell::RefCell;
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    #[test]
+    fn given_uuid_and_id_when_tag_instatiated_then_could_read_fields() {
+        let (id, uuid) = (1, Uuid::new_v4());
+        let tag: Tag = Tag::new(id, uuid);
+        assert_eq!(id, tag.clone().get_id());
+        assert_eq!(uuid, tag.clone().get_uuid());
+    }
+
+    #[test]
+    fn given_volume_initiated_then_vol_is_zero_and_none_popped_from_traders_field() {
+        let obj: Volume = Volume::new();
+        assert_eq!(&0, obj.clone().get_vol());
+        assert_eq!(None, obj.clone().pop_trader());
+    }
+
+    #[test]
+    fn given_volume_configured_with_vol_and_tags_when_fields_accessed_then_all_are_verifiable() {
+        let tag1: Tag = Tag::new(1, Uuid::new_v4());
+        let tag2: Tag = Tag::new(2, Uuid::new_v4());
+        let mut obj: Volume = Volume::new();
+        obj.set_vol(2);
+        assert_eq!(&2, obj.get_vol());
+        obj.push_trader(tag1);
+        obj.push_trader(tag2);
+        assert_eq!(2, obj.get_trader_nums());
+    }
+
+    #[test]
+    fn given_cardboard_initiated_when_volume_accessed_by_key_then_field_vol_is_zero() {}
 }
