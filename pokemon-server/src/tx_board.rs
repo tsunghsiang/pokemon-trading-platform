@@ -111,10 +111,10 @@ impl TxBoard {
 
 #[cfg(test)]
 mod tests {
-    use crate::data_type::Side;
+    use crate::data_type::{Card, Side};
     use crate::tx_board::{CardBoard, Tag, TxBoard, Volume};
-    use std::cell::RefCell;
     use std::sync::Arc;
+    use std::sync::Mutex;
     use uuid::Uuid;
 
     #[test]
@@ -145,5 +145,62 @@ mod tests {
     }
 
     #[test]
-    fn given_cardboard_initiated_when_volume_accessed_by_key_then_field_vol_is_zero() {}
+    fn given_cardboard_initiated_when_volume_accessed_by_key_then_field_vol_is_zero() {
+        let board = Arc::new(Mutex::new(CardBoard::new()));
+        let (buy_board, sell_board) = (Arc::clone(&board), Arc::clone(&board));
+        for px in 1..11 {
+            if let Ok(mut res) = buy_board.lock() {
+                let card_buy_board = res.get_bs_board(Side::Buy);
+                if let Some(obj) = card_buy_board.get(&px) {
+                    assert_eq!(&0, obj.get_vol());
+                } else {
+                    panic!("[ERROR] Test Failed: Cannot Access Corresponding Buy Volume");
+                }
+            } else {
+                panic!("[ERROR] Test Failed When Accessing Card Buy Board");
+            }
+
+            if let Ok(mut res) = sell_board.lock() {
+                let card_sell_board = res.get_bs_board(Side::Buy);
+                if let Some(obj) = card_sell_board.get(&px) {
+                    assert_eq!(&0, obj.get_vol());
+                } else {
+                    panic!("[ERROR] Test Failed: Cannot Access Corresponding Sell Volume");
+                }
+            } else {
+                panic!("[ERROR] Test Failed When Accessing Card Buy Board");
+            }
+        }
+    }
+
+    #[test]
+    fn given_txboard_initiated_when_accessed_by_card_then_corresponding_cardboards_exist() {
+        let mut tx_board = TxBoard::new();
+        let content = tx_board.get_board_content();
+        if let Some(_cardboard) = content.get(&Card::Bulbasaur) {
+            // do nothing here, just check corresponding card board exists
+        } else {
+            panic!("[ERROR] TxBoard instantiation error: Bulbasaur does not exist.");
+        }
+
+        if let Some(_cardboard) = content.get(&Card::Charmander) {
+            // do nothing here, just check corresponding card board exists
+        } else {
+            panic!("[ERROR] TxBoard instantiation error: Charmander does not exist.");
+        }
+
+        if let Some(_cardboard) = content.get(&Card::Pikachu) {
+            // do nothing here, just check corresponding card board exists
+        } else {
+            panic!("[ERROR] TxBoard instantiation error: Pikachu does not exist.");
+        }
+
+        if let Some(_cardboard) = content.get(&Card::Squirtle) {
+            // do nothing here, just check corresponding card board exists
+        } else {
+            panic!("[ERROR] TxBoard instantiation error: Squirtle does not exist.");
+        }
+
+        assert_eq!(4, content.len());
+    }
 }
