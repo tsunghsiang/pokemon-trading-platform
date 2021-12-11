@@ -11,13 +11,13 @@ pub enum ProcessResult {
     // add other status here based on real conditions
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OrderStatus {
     Confirmed,
     Filled,
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Side {
     Buy,
     Sell,
