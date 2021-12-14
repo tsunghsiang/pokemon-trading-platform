@@ -1,4 +1,4 @@
-use crate::data_type::{Card, Side};
+use crate::data_type::{Card, RequestOrder, Side};
 use std::collections::HashMap;
 use std::collections::LinkedList;
 use uuid::Uuid;
@@ -107,12 +107,24 @@ impl TxBoard {
     pub fn get_board_content(&mut self) -> &mut HashMap<Card, CardBoard> {
         &mut self.content
     }
+
+    pub fn add_tx_req(&mut self, req: &RequestOrder) {
+        if let Some(res) = self.content.get_mut(&req.get_card()) {
+            let card_board = res.get_bs_board(req.get_side());
+            let tag = Tag::new(req.get_trade_id(), req.get_uuid());
+            if let Some(cur_vol) = card_board.get_mut(&(req.get_order_px() as i32)) {
+                cur_vol.set_vol(cur_vol.get_vol() + req.get_vol());
+                cur_vol.push_trader(tag);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::data_type::{Card, Side};
+    use crate::data_type::{Card, RequestOrder, Side};
     use crate::tx_board::{CardBoard, Tag, TxBoard, Volume};
+    use chrono::Utc;
     use std::sync::Arc;
     use std::sync::Mutex;
     use uuid::Uuid;
@@ -202,5 +214,44 @@ mod tests {
         }
 
         assert_eq!(4, content.len());
+    }
+
+    #[test]
+    fn given_an_untradable_req_when_received_then_added_into_tx_board() {
+        let mut tx_board = TxBoard::new();
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            10.00,
+            1,
+            Card::Bulbasaur,
+            1,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+        tx_board.add_tx_req(&req);
+        // check if an untradable request has been inserted to tx_board
+        if let Some(board) = tx_board.get_board_content().get_mut(&req.get_card()) {
+            if let Some(check) = board
+                .get_bs_board(req.get_side())
+                .get_mut(&(req.get_order_px() as i32))
+            {
+                assert_eq!(&1, check.get_vol());
+                assert_eq!(1, check.get_trader_nums());
+                if let Some(tag) = check.pop_trader() {
+                    assert_eq!(req.get_uuid(), tag.clone().get_uuid());
+                    assert_eq!(req.get_trade_id(), tag.clone().get_id());
+                } else {
+                    panic!("[ERROR] ");
+                }
+            } else {
+                match req.get_side() {
+                    Side::Buy => panic!("[ERROR] Test failed: buy baord does not exist."),
+                    Side::Sell => panic!("[ERROR] Test failed: sell baord does not exist."),
+                };
+            }
+        } else {
+            panic!("[ERROR] Test Failed: Card board does not exist.");
+        }
     }
 }

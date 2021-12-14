@@ -36,31 +36,31 @@ impl Stats {
         }
     }
 
-    fn get_uuid(&self) -> &Uuid {
+    pub fn get_uuid(&self) -> &Uuid {
         &self.uuid
     }
 
-    fn get_tm(&self) -> &DateTime<Utc> {
+    pub fn get_tm(&self) -> &DateTime<Utc> {
         &self.tm
     }
 
-    fn get_side(&self) -> &Side {
+    pub fn get_side(&self) -> &Side {
         &self.side
     }
 
-    fn get_order_px(&self) -> &f64 {
+    pub fn get_order_px(&self) -> &f64 {
         &self.order_px
     }
 
-    fn get_vol(&self) -> &i32 {
+    pub fn get_vol(&self) -> &i32 {
         &self.vol
     }
 
-    fn get_card(&self) -> &Card {
+    pub fn get_card(&self) -> &Card {
         &self.card
     }
 
-    fn get_status(&self) -> &OrderStatus {
+    pub fn get_status(&self) -> &OrderStatus {
         &self.status
     }
 }

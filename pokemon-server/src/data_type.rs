@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use tide::prelude::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ProcessResult {
     TxConfirmed,
     TxFilled,
@@ -43,6 +43,26 @@ pub struct RequestOrder {
 }
 
 impl RequestOrder {
+    pub fn new(
+        uuid: Uuid,
+        tm: DateTime<Utc>,
+        side: Side,
+        order_px: f64,
+        vol: i32,
+        card: Card,
+        trade_id: i32,
+    ) -> RequestOrder {
+        Self {
+            uuid: uuid,
+            tm: tm,
+            side: side,
+            order_px: order_px,
+            vol: vol,
+            card: card,
+            trader_id: trade_id,
+        }
+    }
+
     pub fn get_uuid(&self) -> Uuid {
         self.uuid
     }
