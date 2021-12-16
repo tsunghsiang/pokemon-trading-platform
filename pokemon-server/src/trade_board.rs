@@ -30,23 +30,23 @@ impl Trade {
         }
     }
 
-    fn get_tx_time(&self) -> &DateTime<Utc> {
+    pub fn get_tx_time(&self) -> &DateTime<Utc> {
         &self.tx_time
     }
 
-    fn get_buy_side_id(&self) -> &i32 {
+    pub fn get_buy_side_id(&self) -> &i32 {
         &self.buy_side
     }
 
-    fn get_sell_side_id(&self) -> &i32 {
+    pub fn get_sell_side_id(&self) -> &i32 {
         &self.sell_side
     }
 
-    fn get_tx_price(&self) -> &f64 {
+    pub fn get_tx_price(&self) -> &f64 {
         &self.tx_price
     }
 
-    fn get_tx_vol(&self) -> &i32 {
+    pub fn get_tx_vol(&self) -> &i32 {
         &self.tx_vol
     }
 }
@@ -93,7 +93,7 @@ impl TradeBoard {
         &self.limit
     }
 
-    fn get_back_trade(&self, card: &Card) -> Option<Trade> {
+    pub fn get_back_trade(&self, card: &Card) -> Option<Trade> {
         let back: Option<Trade> = match self.board.get(card) {
             Some(res) => {
                 if let Some(elem) = res.back() {
@@ -108,7 +108,7 @@ impl TradeBoard {
         back
     }
 
-    fn get_front_trade(&self, card: &Card) -> Option<Trade> {
+    pub fn get_front_trade(&self, card: &Card) -> Option<Trade> {
         let front: Option<Trade> = match self.board.get(card) {
             Some(res) => {
                 if let Some(elem) = res.front() {
