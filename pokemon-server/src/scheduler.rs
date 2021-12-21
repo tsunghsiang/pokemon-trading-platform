@@ -892,4 +892,187 @@ mod tests {
             panic!("[ERROR] Test Failed: uuid does not exist in status_board");
         }
     }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_an_untradable_price_received_then_confirmed(
+    ) {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            6.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+        assert_eq!(ProcessResult::TxConfirmed, scheduler.process(&req));
+    }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_an_untradable_price_received_then_queued_in_tx_board(
+    ) {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            6.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+        // process request
+        scheduler.process(&req);
+        // check if non-filled order is inserted into tx_board for later matching
+        if let Some(card_board) = scheduler
+            .tx_board
+            .get_board_content()
+            .get_mut(&req.get_card())
+        {
+            if let Some(volume) = card_board
+                .get_bs_board(req.get_side())
+                .get_mut(&(req.get_order_px() as i32))
+            {
+                assert_eq!(true, volume.get_vol() > &0);
+                assert_eq!(1, volume.get_trader_nums());
+                if let Some(tag) = volume.pop_trader() {
+                    assert_eq!(req.get_uuid(), tag.clone().get_uuid());
+                    assert_eq!(req.get_trade_id(), tag.clone().get_id())
+                } else {
+                    panic!("[ERROR] Test Failed: Tag does not exist.");
+                }
+            } else {
+                panic!("[ERROR] Test Failed: Volume does not exist in card board.");
+            }
+        } else {
+            panic!("[ERROR] Test Failed: Card board does not exist.");
+        }
+    }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_an_untradable_price_received_then_queued_in_status_board(
+    ) {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            6.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+
+        // process request
+        scheduler.process(&req);
+        // check if non-filled order is inserted into status board
+        if let Some(res) = scheduler.status_board.get_back_uuid(&req.get_trade_id()) {
+            assert_eq!(req.get_uuid(), res);
+        } else {
+            panic!("[ERROR] Test Failed: uuid does not exist in status_list");
+        }
+
+        if let Some(res) = scheduler
+            .status_board
+            .get_stat(&req.get_trade_id(), &req.get_uuid())
+        {
+            assert_eq!(&req.get_card(), res.get_card());
+            assert_eq!(&req.get_order_px(), res.get_order_px());
+            assert_eq!(&req.get_side(), res.get_side());
+            assert_eq!(&OrderStatus::Confirmed, res.get_status());
+            assert_eq!(&req.get_tm(), res.get_tm());
+            assert_eq!(&req.get_uuid(), res.get_uuid());
+            assert_eq!(&req.get_vol(), res.get_vol());
+        } else {
+            panic!("[ERROR] Test Failed: uuid does not exist in status_board");
+        }
+    }    
 }
