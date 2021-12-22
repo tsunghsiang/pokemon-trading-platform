@@ -708,7 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn given_there_are_sell_orders_when_a_buy_order_with_a_tradable_price_received_then_status_baord_updated(
+    fn given_there_are_sell_orders_when_a_buy_order_with_a_tradable_price_received_then_status_board_updated(
     ) {
         let mut scheduler = Scheduler::new();
         for i in 1..6 {
@@ -1074,5 +1074,299 @@ mod tests {
         } else {
             panic!("[ERROR] Test Failed: uuid does not exist in status_board");
         }
-    }    
+    }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_a_tradable_price_received_then_filled() {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            4.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+
+        // process request
+        assert_eq!(ProcessResult::TxFilled, scheduler.process(&req));
+    }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_a_tradable_price_received_then_tx_board_updated(
+    ) {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            4.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+
+        // get field state of the highest buy price
+        let prev_vol: i32;
+        let prev_trader_cnt: usize;
+        if let Some(board) = scheduler
+            .tx_board
+            .get_board_content()
+            .get_mut(&Card::Bulbasaur)
+        {
+            if let Some(volume) = board.get_bs_board(Side::Buy).get_mut(&5) {
+                prev_vol = *volume.get_vol();
+                prev_trader_cnt = volume.get_trader_nums();
+            } else {
+                panic!("[ERROR] Test Failed: Volume does not exist.");
+            }
+        } else {
+            panic!("[ERROR] Test Failed: Board does not exist.");
+        }
+
+        // process request
+        scheduler.process(&req);
+
+        // get field state of the highest buy price
+        let cur_vol: i32;
+        let cur_trader_cnt: usize;
+        if let Some(board) = scheduler
+            .tx_board
+            .get_board_content()
+            .get_mut(&Card::Bulbasaur)
+        {
+            if let Some(volume) = board.get_bs_board(Side::Buy).get_mut(&5) {
+                cur_vol = *volume.get_vol();
+                cur_trader_cnt = volume.get_trader_nums();
+            } else {
+                panic!("[ERROR] Test Failed: Volume does not exist.");
+            }
+        } else {
+            panic!("[ERROR] Test Failed: Board does not exist.");
+        }
+
+        assert!(cur_vol < prev_vol);
+        assert!(cur_trader_cnt < prev_trader_cnt);
+    }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_a_tradable_price_received_then_trade_board_updated(
+    ) {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            4.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+
+        // get previous state of trade_board
+        let prev_trade: Trade;
+        let cur_trade: Trade;
+        let tm = Utc::now();
+        if let Some(res) = scheduler.trade_board.get_back_trade(&Card::Bulbasaur) {
+            prev_trade = res.clone();
+        } else {
+            prev_trade = Trade::new(tm.clone(), 1, 1, 1.00, 1);
+        }
+
+        // process the request
+        scheduler.process(&req);
+
+        // get current state of trade_board
+
+        if let Some(res) = scheduler.trade_board.get_back_trade(&Card::Bulbasaur) {
+            cur_trade = res.clone();
+        } else {
+            cur_trade = Trade::new(tm.clone(), 1, 1, 1.00, 1);
+        }
+
+        assert_ne!(cur_trade, prev_trade);
+        assert_eq!(&5, cur_trade.get_buy_side_id());
+        assert_eq!(&6, cur_trade.get_sell_side_id());
+        assert_eq!(&5.00, cur_trade.get_tx_price());
+        assert_eq!(&1, cur_trade.get_tx_vol());
+    }
+
+    #[test]
+    fn given_there_are_buy_orders_when_a_sell_order_with_a_tradable_price_received_then_status_board_updated(
+    ) {
+        let mut scheduler = Scheduler::new();
+        for i in 1..6 {
+            let (uuid, tm, side, order_px, vol, card, trade_id) = (
+                Uuid::new_v4(),
+                Utc::now(),
+                Side::Buy,
+                (0.00 + i as f64),
+                1,
+                Card::Bulbasaur,
+                i,
+            );
+            let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+            scheduler.tx_board.add_tx_req(&req);
+            // update status board
+            let stats = Stats::new(
+                req.get_uuid(),
+                req.get_tm(),
+                req.get_side(),
+                req.get_order_px(),
+                req.get_vol(),
+                req.get_card(),
+                OrderStatus::Confirmed,
+            );
+            scheduler
+                .status_board
+                .add_status(req.get_trade_id(), req.get_uuid(), stats);
+        }
+
+        // generate sell order
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            4.00,
+            1,
+            Card::Bulbasaur,
+            6,
+        );
+        let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
+
+        // get previous state of status board
+        let prev_buy_side_uuid: Uuid;
+        let prev_buy_side_stat: Stats;
+        if let Some(res) = scheduler.status_board.get_back_uuid(&5) {
+            prev_buy_side_uuid = res.clone();
+        } else {
+            panic!("[ERROR] Test Failed: uuid does not exist in status_list");
+        }
+
+        if let Some(res) = scheduler.status_board.get_stat(&5, &prev_buy_side_uuid) {
+            prev_buy_side_stat = res.clone();
+            assert_eq!(&OrderStatus::Confirmed, prev_buy_side_stat.get_status());
+        } else {
+            panic!("[ERROR] Test Failed: stat does not exist in status_board");
+        }
+
+        // process order request
+        scheduler.process(&req);
+
+        // get current state of status board
+        let cur_buy_side_stat: Stats;
+        let cur_sell_side_stat: Stats;
+        let cur_sell_side_uuid: Uuid;
+        if let Some(res) = scheduler.status_board.get_stat(&5, &prev_buy_side_uuid) {
+            cur_buy_side_stat = res.clone();
+            assert_eq!(&OrderStatus::Filled, cur_buy_side_stat.get_status());
+        } else {
+            panic!("[ERROR] Test Failed: stat does not exist in status_board");
+        }
+
+        if let Some(res) = scheduler.status_board.get_back_uuid(&6) {
+            cur_sell_side_uuid = res.clone();
+            assert_eq!(
+                Some(cur_sell_side_uuid),
+                scheduler.status_board.get_back_uuid(&6)
+            );
+        } else {
+            panic!("[ERROR] Test Failed: uuid does not exist in status_list");
+        }
+
+        if let Some(res) = scheduler.status_board.get_stat(&6, &cur_sell_side_uuid) {
+            cur_sell_side_stat = res.clone();
+            assert_eq!(&OrderStatus::Filled, cur_sell_side_stat.get_status());
+        } else {
+            panic!("[ERROR] Test Failed: stat does not exist in status_board");
+        }
+    }
 }
