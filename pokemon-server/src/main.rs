@@ -1,4 +1,4 @@
-use data_type::RequestOrder;
+use data_type::{Card, RequestOrder};
 use scheduler::Scheduler;
 use std::sync::{Arc, Mutex};
 use tide::Request;
@@ -56,8 +56,47 @@ async fn main() -> tide::Result<()> {
             let handler = Arc::clone(&trade_checker.clone());
             async move {
                 let card = req.param("card").unwrap_or("None");
-                let res = format!("View the latest 50 trades on card: {}", &card);
-                Ok(res)
+                let param = match card {
+                    "Pikachu" => Card::Pikachu,
+                    "Bulbasaur" => Card::Bulbasaur,
+                    "Charmander" => Card::Charmander,
+                    "Squirtle" => Card::Squirtle,
+                    _ => Card::Pikachu,
+                };
+
+                let mut res = String::from("");
+                if let Some(list) = handler.lock().unwrap().get_latest_trades_on_cards(&param) {
+                    let header_begin = format!(
+                        "============================================= {:?} =============================================",
+                        param
+                    );
+                    let header_end = format!(
+                        "\n============================================= {:?} =============================================",
+                        param
+                    );
+
+                    res += &header_begin;
+
+                    if list.len() > 0 {
+                        for elem in list {
+                            let row = format!(
+                                "\n|{}|buy_side_id: {}|sell_side_id: {}|px: {}|vol: {}|",
+                                elem.get_tx_time(),
+                                elem.get_buy_side_id(),
+                                elem.get_sell_side_id(),
+                                elem.get_tx_price(),
+                                elem.get_tx_vol(),
+                            );
+                            res += &row;
+                        }
+                    } else {
+                        res += "\nNone";
+                    }
+
+                    res += &header_end;
+                }
+
+                Ok(res.to_string())
             }
         });
 

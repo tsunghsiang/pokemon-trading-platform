@@ -1,9 +1,9 @@
-use crate::data_type::{OrderStatus, ProcessResult, RequestOrder, Side};
+use crate::data_type::{Card, OrderStatus, ProcessResult, RequestOrder, Side};
 use crate::status_board::{Stats, StatusBoard};
 use crate::trade_board::{Trade, TradeBoard};
 use crate::tx_board::{Tag, TxBoard};
 use chrono::Utc;
-use std::collections::VecDeque;
+use std::collections::{LinkedList, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tide::Request;
@@ -37,11 +37,9 @@ impl Scheduler {
                     let mut px = 1;
                     let sell_card_board = res.get_bs_board(Side::Sell);
                     loop {
-                        println!("test with {}", &px);
                         if let Some(volume) = sell_card_board.get_mut(&px) {
                             // Buy order traded
                             if volume.get_vol() > &0 && req.get_order_px() >= (px as f64) {
-                                println!("traded with {}", &px);
                                 // update tx_board
                                 let mut uuid: Uuid;
                                 let mut sell_side_id: i32 = -1;
@@ -52,6 +50,7 @@ impl Scheduler {
                                 } else {
                                     break ProcessResult::TxBoardUpdateFail;
                                 }
+
                                 // update trade_board
                                 let trade = Trade::new(
                                     Utc::now(),
@@ -60,8 +59,9 @@ impl Scheduler {
                                     px as f64,
                                     req.get_vol(),
                                 );
-                                println!("updated trade_board with {}", &px);
+
                                 self.trade_board.add_trade(&req.get_card(), trade);
+
                                 // update status board
                                 // update sell-side's status_board (update)
                                 self.status_board.update_status(
@@ -69,6 +69,7 @@ impl Scheduler {
                                     uuid,
                                     OrderStatus::Filled,
                                 );
+
                                 // update buy-side's status board (add)
                                 let stats = Stats::new(
                                     req.get_uuid(),
@@ -85,7 +86,7 @@ impl Scheduler {
                                     stats,
                                 );
                                 println!(
-                                    "[BUY][TRADED] Card: {:?}, TxPrice: {}, TxVol: {}",
+                                    "[BUY][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
                                     &card,
                                     &px,
                                     req.get_vol()
@@ -106,7 +107,7 @@ impl Scheduler {
                                 cur_vol.set_vol(cur_vol.get_vol() + req.get_vol());
                                 cur_vol.push_trader(tag);
                             }
-                            println!("update_buy_tx_baord");
+
                             // update status baord
                             let stats = Stats::new(
                                 req.get_uuid(),
@@ -119,7 +120,13 @@ impl Scheduler {
                             );
                             self.status_board
                                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
-                            println!("update_buy_status_board");
+                            println!(
+                                "[BUY][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
+                                req.get_card(),
+                                req.get_order_px(),
+                                req.get_vol(),
+                                req.get_trade_id()
+                            );
                             break ProcessResult::TxConfirmed;
                         }
                     }
@@ -173,7 +180,7 @@ impl Scheduler {
                                     stats,
                                 );
                                 println!(
-                                    "[SELL][TRADED] Card: {:?}, TxPrice: {}, TxVol: {}",
+                                    "[SELL][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
                                     &card,
                                     &px,
                                     req.get_vol()
@@ -193,7 +200,7 @@ impl Scheduler {
                                 cur_vol.set_vol(cur_vol.get_vol() + req.get_vol());
                                 cur_vol.push_trader(tag);
                             }
-                            println!("update_sell_tx_board");
+
                             // update status baord
                             let stats = Stats::new(
                                 req.get_uuid(),
@@ -206,7 +213,13 @@ impl Scheduler {
                             );
                             self.status_board
                                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
-                            println!("update_sell_status_board");
+                            println!(
+                                "[SELL][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
+                                req.get_card(),
+                                req.get_order_px(),
+                                req.get_vol(),
+                                req.get_trade_id()
+                            );
                             break ProcessResult::TxConfirmed;
                         }
                     }
@@ -216,6 +229,10 @@ impl Scheduler {
             proc_res = ProcessResult::UnknownCard;
         }
         proc_res
+    }
+
+    pub fn get_latest_trades_on_cards(&self, card: &Card) -> Option<&LinkedList<Trade>> {
+        self.trade_board.get_board_content_immutable().get(card)
     }
 }
 

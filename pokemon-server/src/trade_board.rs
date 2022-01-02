@@ -85,7 +85,7 @@ impl TradeBoard {
         &mut self.board
     }
 
-    fn get_board_content_immutable(&self) -> &HashMap<Card, LinkedList<Trade>> {
+    pub fn get_board_content_immutable(&self) -> &HashMap<Card, LinkedList<Trade>> {
         &self.board
     }
 
