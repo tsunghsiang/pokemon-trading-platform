@@ -65,7 +65,7 @@ async fn main() -> tide::Result<()> {
                 };
 
                 let mut res = String::from("");
-                if let Some(list) = handler.lock().unwrap().get_latest_trades_on_cards(&param) {
+                if let Some(list) = handler.lock().unwrap().get_latest_trades(&param) {
                     let header_begin = format!(
                         "============================================= {:?} =============================================",
                         param
@@ -105,9 +105,43 @@ async fn main() -> tide::Result<()> {
         .get(move |req: Request<()>| {
             let handler = Arc::clone(&order_checker.clone());
             async move {
-                let id = req.param("id").unwrap();
-                let res = format!("View the latest 50 orders of trader[{}]", &id);
-                Ok(res)
+                let id = req.param("id").unwrap().parse::<i32>().unwrap();
+                let mut res = String::from("");
+
+                if let Some(stats) = handler.lock().unwrap().get_latest_orders(&id) {
+                
+                    let header_begin = format!(
+                        "============================================= Trader[{}] =============================================",
+                        &id
+                    );
+                    let header_end = format!(
+                        "\n============================================= Trader[{}] =============================================",
+                        &id
+                    );
+
+                    res += &header_begin;               
+
+                    if stats.len() > 0 {
+                         for elem in stats {
+                            let row = format!(
+                                "\n|{}|side: {:?}|order_px: {}|vol: {}|card: {:?}|status: {:?}|",
+                                elem.get_tm(),
+                                elem.get_side(),
+                                elem.get_order_px(),
+                                elem.get_vol(),
+                                elem.get_card(),
+                                elem.get_status()
+                            );
+                            res += &row;
+                        }               
+                    } else {
+                        res += "\nNone";
+                    }
+                    
+                    res += &header_end;
+                }
+
+                Ok(res.to_string())
             }
         });
 

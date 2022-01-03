@@ -231,8 +231,22 @@ impl Scheduler {
         proc_res
     }
 
-    pub fn get_latest_trades_on_cards(&self, card: &Card) -> Option<&LinkedList<Trade>> {
+    pub fn get_latest_trades(&self, card: &Card) -> Option<&LinkedList<Trade>> {
         self.trade_board.get_board_content_immutable().get(card)
+    }
+
+    pub fn get_latest_orders(&self, id: &i32) -> Option<LinkedList<Stats>> {
+        let mut res: LinkedList<Stats> = LinkedList::<Stats>::new();
+        if let Some(uuids) = self.status_board.get_latest_uuids(id) {
+            for e in uuids {
+                if let Some(stat) = self.status_board.get_stat(id, &e) {
+                    res.push_back(stat);
+                }
+            }
+            Some(res)
+        } else {
+            None
+        }
     }
 }
 

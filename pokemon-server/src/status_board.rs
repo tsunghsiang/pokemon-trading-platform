@@ -167,6 +167,10 @@ impl StatusBoard {
 
         res
     }
+
+    pub fn get_latest_uuids(&self, id: &i32) -> Option<&LinkedList<Uuid>> {
+        self.status_list.get(id)
+    }
 }
 
 #[cfg(test)]
