@@ -1,3 +1,4 @@
+use contracts::*;
 use postgres::{Client, NoTls};
 
 pub struct Database {
@@ -5,6 +6,7 @@ pub struct Database {
 }
 
 impl Database {
+    #[ensures(ret.is_connected() == true, "database is connected")]
     pub fn new() -> Self {
         Database {
             client: Client::connect(
@@ -19,28 +21,37 @@ impl Database {
             .unwrap(),
         }
     }
+}
 
+impl Database {
+    #[requires(self.is_connected(), "database should be connected")]
+    #[ensures(self.enum_type_exist("side"), "enum Side should be created after the database initialization")]
+    #[ensures(self.enum_type_exist("card"), "enum Card should be created after the database initialization")]
+    #[ensures(self.enum_type_exist("orderstatus"), "enum OrderStatus should be created after the database initialization")]
+    #[ensures(self.table_exist("public", "request_table"), "request_table should be created after the database initialization")]
+    #[ensures(self.table_exist("public", "status_table"), "status_table should be created after the database initialization")]
+    #[ensures(self.table_exist("public", "trade_table"), "trade_table should be created after the database initialization")]
     pub fn init_tables(&mut self) {
         // create enum 'Side'
-        if !self.enum_type_exist("Side") {
+        if !self.enum_type_exist("side") {
             self.client
-                .batch_execute("CREATE TYPE Side AS ENUM('Buy', 'Sell')")
+                .batch_execute("CREATE TYPE side AS ENUM('Buy', 'Sell');")
                 .unwrap();
         }
 
         // create enum 'Card'
-        if !self.enum_type_exist("Card") {
+        if !self.enum_type_exist("card") {
             self.client
                 .batch_execute(
-                    "CREATE TYPE Card AS ENUM('Pikachu', 'Bulbasaur', 'Charmander', 'Squirtle')",
+                    "CREATE TYPE card AS ENUM('Pikachu', 'Bulbasaur', 'Charmander', 'Squirtle');",
                 )
                 .unwrap();
         }
 
         // create enum 'OrderStatus'
-        if !self.enum_type_exist("OrderStatus") {
+        if !self.enum_type_exist("orderstatus") {
             self.client
-                .batch_execute("CREATE TYPE OrderStatus AS ENUM('Confirmed', 'Filled')")
+                .batch_execute("CREATE TYPE orderstatus AS ENUM('Confirmed', 'Filled');")
                 .unwrap();
         }
 
@@ -51,11 +62,10 @@ impl Database {
                     uuid UUID,
                     tm timestamptz,
                     side Side,
-                    order_px double,
+                    order_px REAL,
                     vol INTEGER,
                     card Card,
-                    trader_id, INTEGER 
-                )",
+                    trader_id INTEGER);",
             )
             .unwrap();
 
@@ -65,7 +75,7 @@ impl Database {
                 "create table if not exists status_table(
                     uuid UUID,
                     status OrderStatus
-                )",
+                );",
             )
             .unwrap();
 
@@ -77,10 +87,10 @@ impl Database {
                     sell_uuid UUID,
                     buy_side_id INTEGER,
                     sell_side_id INTEGER,
-                    tx_price double,
+                    tx_price REAL,
                     tx_vol INTEGER,
                     card Card
-                )",
+                );",
             )
             .unwrap();
     }
@@ -89,6 +99,7 @@ impl Database {
         !self.client.is_closed()
     }
 
+    #[requires(self.is_connected(), "database should be connected before checking whether an enum exists")]
     pub fn enum_type_exist(&mut self, name: &str) -> bool {
         let res = self
             .client
@@ -100,15 +111,15 @@ impl Database {
 
         res.get("exists")
     }
+
+    #[requires(self.is_connected(), "database should be connected before checking whether a table exists")]
+    pub fn table_exist(&mut self, schema: &str, table: &str) -> bool {
+        let res = self.client.query_one("SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2);", &[&schema, &table]).unwrap();
+        res.get("exists")
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::database::Database;
-
-    #[test]
-    fn given_database_instantiated_then_db_connected() {
-        let db = Database::new();
-        assert_eq!(true, db.is_connected());
-    }
 }
