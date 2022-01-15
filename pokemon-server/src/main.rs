@@ -8,6 +8,7 @@ mod scheduler;
 mod status_board;
 mod trade_board;
 mod tx_board;
+mod database;
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {

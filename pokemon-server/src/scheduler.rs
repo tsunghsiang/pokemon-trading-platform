@@ -1,20 +1,24 @@
 use crate::data_type::{Card, OrderStatus, ProcessResult, RequestOrder, Side};
+use crate::database;
 use crate::status_board::{Stats, StatusBoard};
 use crate::trade_board::{Trade, TradeBoard};
 use crate::tx_board::{Tag, TxBoard};
+
 use chrono::Utc;
+use database::Database;
 use std::collections::{LinkedList, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tide::Request;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+//#[derive(Debug, Clone)]
 pub struct Scheduler {
     pub order_queue: VecDeque<RequestOrder>,
     pub tx_board: TxBoard,
     pub trade_board: TradeBoard,
     pub status_board: StatusBoard,
+    pub db: Database,
 }
 
 impl Scheduler {
@@ -24,6 +28,7 @@ impl Scheduler {
             tx_board: TxBoard::new(),
             trade_board: TradeBoard::new(),
             status_board: StatusBoard::new(),
+            db: Database::new(),
         }
     }
 
