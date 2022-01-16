@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use postgres_types::{FromSql, ToSql};
 use tide::prelude::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -11,23 +12,34 @@ pub enum ProcessResult {
     // add other status here based on real conditions
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, ToSql, FromSql, Clone, PartialEq)]
+#[postgres(name = "orderstatus")]
 pub enum OrderStatus {
+    #[postgres(name = "Confirmed")]
     Confirmed,
+    #[postgres(name = "Filled")]
     Filled,
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, ToSql, FromSql)]
+#[postgres(name = "side")]
 pub enum Side {
+    #[postgres(name = "Buy")]
     Buy,
+    #[postgres(name = "Sell")]
     Sell,
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, ToSql, FromSql)]
+#[postgres(name = "card")]
 pub enum Card {
+    #[postgres(name = "Pikachu")]
     Pikachu,
+    #[postgres(name = "Bulbasaur")]
     Bulbasaur,
+    #[postgres(name = "Charmander")]
     Charmander,
+    #[postgres(name = "Squirtle")]
     Squirtle,
 }
 

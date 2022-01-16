@@ -12,7 +12,6 @@ use std::thread;
 use tide::Request;
 use uuid::Uuid;
 
-//#[derive(Debug, Clone)]
 pub struct Scheduler {
     pub order_queue: VecDeque<RequestOrder>,
     pub tx_board: TxBoard,
@@ -35,6 +34,7 @@ impl Scheduler {
     pub fn process(&mut self, req: &RequestOrder) -> ProcessResult {
         let mut proc_res: ProcessResult = ProcessResult::TxConfirmed;
         let card = req.get_card();
+        self.db.insert_request_table(req);
 
         if let Some(res) = self.tx_board.get_board_content().get_mut(&card) {
             proc_res = match req.get_side() {

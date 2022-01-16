@@ -1,5 +1,7 @@
+use crate::data_type::RequestOrder;
 use contracts::*;
 use postgres::{Client, NoTls};
+// use sqlx::postgres::PgPoolOptions;
 
 pub struct Database {
     client: Client,
@@ -8,7 +10,7 @@ pub struct Database {
 impl Database {
     #[ensures(ret.is_connected() == true, "database is connected")]
     pub fn new() -> Self {
-        Database {
+        let mut db = Database {
             client: Client::connect(
                 // prefix: postgresql://postgres
                 // pwd: nctusrs0915904265
@@ -19,7 +21,10 @@ impl Database {
                 NoTls,
             )
             .unwrap(),
-        }
+        };
+
+        db.init_tables();
+        db
     }
 }
 
@@ -31,6 +36,7 @@ impl Database {
     #[ensures(self.table_exist("public", "request_table"), "request_table should be created after the database initialization")]
     #[ensures(self.table_exist("public", "status_table"), "status_table should be created after the database initialization")]
     #[ensures(self.table_exist("public", "trade_table"), "trade_table should be created after the database initialization")]
+    #[invariant(true)]
     pub fn init_tables(&mut self) {
         // create enum 'Side'
         if !self.enum_type_exist("side") {
@@ -62,7 +68,7 @@ impl Database {
                     uuid UUID,
                     tm timestamptz,
                     side Side,
-                    order_px REAL,
+                    order_px FLOAT8,
                     vol INTEGER,
                     card Card,
                     trader_id INTEGER);",
@@ -87,7 +93,7 @@ impl Database {
                     sell_uuid UUID,
                     buy_side_id INTEGER,
                     sell_side_id INTEGER,
-                    tx_price REAL,
+                    tx_price FLOAT8,
                     tx_vol INTEGER,
                     card Card
                 );",
@@ -100,6 +106,8 @@ impl Database {
     }
 
     #[requires(self.is_connected(), "database should be connected before checking whether an enum exists")]
+    #[ensures(true)]
+    #[invariant(true)]
     pub fn enum_type_exist(&mut self, name: &str) -> bool {
         let res = self
             .client
@@ -113,9 +121,31 @@ impl Database {
     }
 
     #[requires(self.is_connected(), "database should be connected before checking whether a table exists")]
+    #[ensures(true)]
+    #[invariant(true)]
     pub fn table_exist(&mut self, schema: &str, table: &str) -> bool {
         let res = self.client.query_one("SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2);", &[&schema, &table]).unwrap();
         res.get("exists")
+    }
+
+    pub fn insert_request_table(&mut self, req: &RequestOrder) {
+        match self.client.execute(
+            "INSERT INTO request_table(uuid, tm, side, order_px, vol, card, trader_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            &[
+                &req.get_uuid(),
+                &req.get_tm(),
+                &req.get_side(),
+                &req.get_order_px(),
+                &req.get_vol(),
+                &req.get_card(),
+                &req.get_trade_id()
+            ],
+        ) {
+            Ok(n) => {}
+            Err(e) => {
+                panic!("[Database][insert] Error: {}", e);
+            }
+        }
     }
 }
 
