@@ -64,7 +64,6 @@ impl Scheduler {
                                     px as f64,
                                     req.get_vol(),
                                 );
-
                                 self.trade_board.add_trade(&req.get_card(), trade);
 
                                 // update status board
@@ -74,6 +73,7 @@ impl Scheduler {
                                     uuid,
                                     OrderStatus::Filled,
                                 );
+                                self.db.update_order_status(&uuid, &OrderStatus::Filled);
 
                                 // update buy-side's status board (add)
                                 let stats = Stats::new(
@@ -90,6 +90,9 @@ impl Scheduler {
                                     req.get_uuid(),
                                     stats,
                                 );
+                                self.db
+                                    .insert_order_status(&req.get_uuid(), &OrderStatus::Filled);
+
                                 println!(
                                     "[BUY][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
                                     &card,
@@ -125,6 +128,8 @@ impl Scheduler {
                             );
                             self.status_board
                                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+                            self.db
+                                .insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
                             println!(
                                 "[BUY][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
                                 req.get_card(),
@@ -153,6 +158,7 @@ impl Scheduler {
                                 } else {
                                     break ProcessResult::TxBoardUpdateFail;
                                 }
+
                                 // update trade_board
                                 let trade = Trade::new(
                                     Utc::now(),
@@ -162,6 +168,7 @@ impl Scheduler {
                                     req.get_vol(),
                                 );
                                 self.trade_board.add_trade(&req.get_card(), trade);
+
                                 // update status board
                                 // update buy-side's status_board (update)
                                 self.status_board.update_status(
@@ -169,6 +176,8 @@ impl Scheduler {
                                     uuid,
                                     OrderStatus::Filled,
                                 );
+                                self.db.update_order_status(&uuid, &OrderStatus::Filled);
+
                                 // update sell-side's status board (add)
                                 let stats = Stats::new(
                                     req.get_uuid(),
@@ -184,6 +193,9 @@ impl Scheduler {
                                     req.get_uuid(),
                                     stats,
                                 );
+                                self.db
+                                    .insert_order_status(&req.get_uuid(), &OrderStatus::Filled);
+
                                 println!(
                                     "[SELL][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
                                     &card,
@@ -206,7 +218,7 @@ impl Scheduler {
                                 cur_vol.push_trader(tag);
                             }
 
-                            // update status baord
+                            // update status board
                             let stats = Stats::new(
                                 req.get_uuid(),
                                 req.get_tm(),
@@ -218,6 +230,9 @@ impl Scheduler {
                             );
                             self.status_board
                                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+                            self.db
+                                .insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
+
                             println!(
                                 "[SELL][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
                                 req.get_card(),

@@ -1,6 +1,7 @@
-use crate::data_type::RequestOrder;
+use crate::data_type::{OrderStatus, RequestOrder};
 use contracts::*;
 use postgres::{Client, NoTls};
+use uuid::Uuid;
 // use sqlx::postgres::PgPoolOptions;
 
 pub struct Database {
@@ -13,7 +14,7 @@ impl Database {
         let mut db = Database {
             client: Client::connect(
                 // prefix: postgresql://postgres
-                // pwd: nctusrs0915904265
+                // pwd: test
                 // ip: localhost
                 // port: 5432
                 // db: pokemon
@@ -128,6 +129,10 @@ impl Database {
         res.get("exists")
     }
 
+    #[requires(self.is_connected(), "database should be connected before checking whether a request exists")]
+    #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
+    #[ensures(self.request_exist(&req.get_uuid()), "the request should be inserted into request_table")]
+    #[invariant(true)]
     pub fn insert_request_table(&mut self, req: &RequestOrder) {
         match self.client.execute(
             "INSERT INTO request_table(uuid, tm, side, order_px, vol, card, trader_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -143,9 +148,82 @@ impl Database {
         ) {
             Ok(n) => {}
             Err(e) => {
-                panic!("[Database][insert] Error: {}", e);
+                panic!("[Database][insert_request_table] Error: {}", e);
             }
         }
+    }
+
+    #[requires(self.is_connected(), "database should be connected before checking whether a request exists")]
+    #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
+    #[ensures(true)]
+    #[invariant(true)]
+    pub fn request_exist(&mut self, uuid: &Uuid) -> bool {
+        let res = match self.client.query_one("select uuid, tm, side, order_px, vol, card, trader_id FROM request_table where uuid = $1", &[&uuid]){
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        res
+    }
+
+    #[requires(self.is_connected(), "database should be connected before inserting status of an order")]
+    #[requires(self.table_exist("public", "status_table"), "status_table should be created in the database")]
+    #[ensures(self.order_status_exist(uuid), "the status of the order has been inserted")]
+    #[invariant(true)]
+    pub fn insert_order_status(&mut self, uuid: &Uuid, status: &OrderStatus) {
+        match self.client.execute(
+            "insert into status_table(uuid, status) values($1, $2)",
+            &[&uuid, &status],
+        ) {
+            Ok(n) => {}
+            Err(e) => {
+                panic!("[Database][insert_order_status] {}", e);
+            }
+        };
+    }
+
+    #[requires(self.is_connected(), "database should be connected before updating status of an order exists")]
+    #[requires(self.table_exist("public", "status_table"), "status_table should be created in the database")]
+    #[requires(self.order_status_exist(uuid), "status should have been existing in the status_table")]
+    #[ensures(*status == self.get_order_status(uuid), "status should be the same after updated")]
+    #[invariant(true)]
+    pub fn update_order_status(&mut self, uuid: &Uuid, status: &OrderStatus) {
+        match self.client.execute(
+            "update status_table set status = $1 where uuid = $2",
+            &[&status, &uuid],
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                panic!("[Database][update_order_status] {}", e);
+            }
+        };
+    }
+
+    #[requires(self.is_connected(), "database should be connected before checking whether status of an order exists")]
+    #[requires(self.table_exist("public", "status_table"), "status_table should be created in the database")]
+    #[ensures(true)]
+    #[invariant(true)]
+    pub fn order_status_exist(&mut self, uuid: &Uuid) -> bool {
+        let res = match self.client.query_one(
+            "select uuid, status FROM status_table where uuid = $1",
+            &[&uuid],
+        ) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        res
+    }
+
+    #[requires(self.is_connected(), "database should be connected before getting status of an order")]
+    #[requires(self.table_exist("public", "status_table"), "status_table should be created in the database")]
+    #[requires(self.order_status_exist(uuid), "status should have been existing in the status_table")]
+    #[ensures(true)]
+    #[invariant(true)]
+    pub fn get_order_status(&mut self, uuid: &Uuid) -> OrderStatus {
+        let res = self
+            .client
+            .query_one("select status FROM status_table where uuid = $1", &[&uuid])
+            .unwrap();
+        res.get("status")
     }
 }
 
