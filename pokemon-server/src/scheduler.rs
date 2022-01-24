@@ -65,6 +65,15 @@ impl Scheduler {
                                     req.get_vol(),
                                 );
                                 self.trade_board.add_trade(&req.get_card(), trade);
+                                self.db.insert_trade_table(
+                                    &req.get_uuid(),
+                                    &uuid,
+                                    &req.get_trade_id(),
+                                    &sell_side_id,
+                                    &(px as f64),
+                                    &req.get_vol(),
+                                    &card,
+                                );
 
                                 // update status board
                                 // update sell-side's status_board (update)
@@ -168,6 +177,15 @@ impl Scheduler {
                                     req.get_vol(),
                                 );
                                 self.trade_board.add_trade(&req.get_card(), trade);
+                                self.db.insert_trade_table(
+                                    &uuid,
+                                    &req.get_uuid(),
+                                    &buy_side_id,
+                                    &req.get_trade_id(),
+                                    &(px as f64),
+                                    &req.get_vol(),
+                                    &card,
+                                );
 
                                 // update status board
                                 // update buy-side's status_board (update)

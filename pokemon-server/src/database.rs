@@ -1,4 +1,4 @@
-use crate::data_type::{OrderStatus, RequestOrder};
+use crate::data_type::{Card, OrderStatus, RequestOrder};
 use contracts::*;
 use postgres::{Client, NoTls};
 use uuid::Uuid;
@@ -18,7 +18,7 @@ impl Database {
                 // ip: localhost
                 // port: 5432
                 // db: pokemon
-                "postgresql://postgres:nctusrs0915904265@localhost:5432/pokemon",
+                "postgresql://postgres:test@localhost:5432/pokemon",
                 NoTls,
             )
             .unwrap(),
@@ -146,7 +146,7 @@ impl Database {
                 &req.get_trade_id()
             ],
         ) {
-            Ok(n) => {}
+            Ok(_) => {}
             Err(e) => {
                 panic!("[Database][insert_request_table] Error: {}", e);
             }
@@ -224,6 +224,41 @@ impl Database {
             .query_one("select status FROM status_table where uuid = $1", &[&uuid])
             .unwrap();
         res.get("status")
+    }
+
+    #[requires(self.is_connected(), "database should be connected before checking whether a request exists")]
+    #[requires(self.table_exist("public", "trade_table"), "request_table should be created in the database")]
+    #[ensures(self.trade_exist(&buy_side_uuid, &sell_side_uuid), "the trade should be inserted into trade_table")]
+    #[invariant(true)]
+    pub fn insert_trade_table(
+        &mut self,
+        buy_side_uuid: &Uuid,
+        sell_side_uuid: &Uuid,
+        buy_side_id: &i32,
+        sell_side_id: &i32,
+        tx_price: &f64,
+        tx_vol: &i32,
+        card: &Card,
+    ) {
+        match self.client.execute("insert into trade_table(buy_uuid, sell_uuid, buy_side_id, sell_side_id, tx_price, tx_vol, card) values($1, $2, $3, $4, $5, $6, $7)", &[&buy_side_uuid, &sell_side_uuid, &buy_side_id, &sell_side_id, &tx_price, &tx_vol, &card]){
+            Ok(_) => {},
+            Err(e) => { panic!("[Dtabase][insert_table_table] {}", e); }
+        };
+    }
+
+    #[requires(self.is_connected(), "database should be connected before checking whether a trade exists")]
+    #[requires(self.table_exist("public", "trade_table"), "trade_table should be created in the database")]
+    #[ensures(true)]
+    #[invariant(true)]
+    pub fn trade_exist(&mut self, buy_side_uuid: &Uuid, sell_side_uuid: &Uuid) -> bool {
+        let res = match self.client.query_one(
+            "select * FROM trade_table where buy_uuid = $1 and sell_uuid = $2",
+            &[&buy_side_uuid, &sell_side_uuid],
+        ) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        res
     }
 }
 
