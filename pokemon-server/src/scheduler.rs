@@ -4,6 +4,7 @@ use crate::status_board::{Stats, StatusBoard};
 use crate::trade_board::{Trade, TradeBoard};
 use crate::tx_board::{Tag, TxBoard};
 
+use postgres::Row;
 use chrono::Utc;
 use database::Database;
 use std::collections::{LinkedList, VecDeque};
@@ -284,6 +285,62 @@ impl Scheduler {
             Some(res)
         } else {
             None
+        }
+    }
+
+    /**
+     * Recover the untraded, realtime prices/volumes for tx_board
+     * The function is adopted when the program crashes suddenly 
+     * and needs disaster recovering in no time
+     **/
+    pub fn recover(&mut self) {
+        let mut res: Vec<Row>;
+        res = self.db.get_realtime_tx_info(&Side::Buy, &Card::Bulbasaur);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Sell, &Card::Bulbasaur);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Buy, &Card::Charmander);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Sell, &Card::Charmander);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Buy, &Card::Pikachu);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Sell, &Card::Pikachu);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Buy, &Card::Squirtle);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
+        }
+
+        res = self.db.get_realtime_tx_info(&Side::Sell, &Card::Squirtle);
+        for row in res {
+            let req = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+            self.tx_board.add_tx_req(&req);
         }
     }
 }

@@ -13,6 +13,8 @@ mod database;
 #[async_std::main]
 async fn main() -> tide::Result<()> {
     let scheduler = Arc::new(Mutex::new(Scheduler::new()));
+    scheduler.lock().unwrap().recover();
+    
     let (req_checker, trade_checker, order_checker, activator) = (
         scheduler.clone(),
         scheduler.clone(),

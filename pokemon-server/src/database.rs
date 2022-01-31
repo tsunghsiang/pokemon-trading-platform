@@ -1,6 +1,6 @@
-use crate::data_type::{Card, OrderStatus, RequestOrder};
+use crate::data_type::{Card, OrderStatus, RequestOrder, Side};
 use contracts::*;
-use postgres::{Client, NoTls};
+use postgres::{Client, NoTls, Row};
 use uuid::Uuid;
 // use sqlx::postgres::PgPoolOptions;
 
@@ -260,9 +260,21 @@ impl Database {
         };
         res
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use crate::database::Database;
+    #[requires(self.is_connected(), "database should be connected before recovering tx_board")]
+    #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
+    #[requires(self.table_exist("public", "status_table"), "status_table should be created in the database")]
+    #[ensures(true)]
+    #[invariant(true)]    
+    pub fn get_realtime_tx_info(&mut self, side: &Side, card: &Card) -> Vec<Row> {
+        let res: Vec<Row> = self.client.query(" select rt.uuid, rt.tm, rt.side, rt.order_px, rt.vol, rt.card, rt.trader_id 
+                                                from request_table rt inner join status_table st
+                                                on (st.status = 'Confirmed' and 
+                                                    rt.uuid = st.uuid and 
+                                                    date(rt.tm) = current_date and 
+                                                    rt.side = $1 and 
+                                                    rt.card = $2)
+                                                order by rt.tm;", &[&side, &card]).unwrap();
+        res
+    }
 }
