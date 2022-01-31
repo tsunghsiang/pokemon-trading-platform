@@ -2,7 +2,6 @@ use crate::data_type::{Card, OrderStatus, RequestOrder, Side};
 use contracts::*;
 use postgres::{Client, NoTls, Row};
 use uuid::Uuid;
-// use sqlx::postgres::PgPoolOptions;
 
 pub struct Database {
     client: Client,

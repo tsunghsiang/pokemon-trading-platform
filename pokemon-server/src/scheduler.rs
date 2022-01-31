@@ -369,6 +369,7 @@ mod tests {
         let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
         assert_eq!(ProcessResult::TxConfirmed, scheduler.process(&req));
     }
+    
     #[test]
     fn given_there_are_not_sell_orders_when_a_buy_order_received_then_queued_in_tx_board() {
         let mut scheduler = Scheduler::new();
@@ -409,6 +410,7 @@ mod tests {
             panic!("[ERROR] Test Failed: Card board does not exist.");
         }
     }
+    
     #[test]
     fn given_there_are_not_sell_orders_when_a_buy_order_received_then_queue_in_status_board() {
         let mut scheduler = Scheduler::new();
@@ -645,6 +647,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -658,6 +662,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate buy order
@@ -692,6 +697,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -705,6 +712,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate buy order
@@ -778,6 +786,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -791,6 +801,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate buy order
@@ -849,6 +860,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -862,6 +875,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate buy order
@@ -1217,6 +1231,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -1230,6 +1246,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate sell order
@@ -1264,6 +1281,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -1277,6 +1296,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate sell order
@@ -1350,6 +1370,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -1363,6 +1385,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate sell order
@@ -1421,6 +1444,8 @@ mod tests {
             );
             let req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);
             scheduler.tx_board.add_tx_req(&req);
+            scheduler.db.insert_request_table(&req);
+
             // update status board
             let stats = Stats::new(
                 req.get_uuid(),
@@ -1434,6 +1459,7 @@ mod tests {
             scheduler
                 .status_board
                 .add_status(req.get_trade_id(), req.get_uuid(), stats);
+            scheduler.db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
         }
 
         // generate sell order
