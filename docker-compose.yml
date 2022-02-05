@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  # Build a Postgresql DB Service
+  postgresql:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: pokemon
+    container_name: pokemon
