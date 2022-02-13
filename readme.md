@@ -53,10 +53,10 @@ Constraints:
 9. If the sequence of orders is fixed, the results must be the same no matter how many times you execute the sequence.
 
 ## Basic Requirements:
-- RESTful API
-- Relational database (PostgreSQL, MySQL, ...)
+- RESTful API (v)
+- Relational database (PostgreSQL, MySQL, ...) (v)
 - Containerize (Docker)
-- Testing
+- Testing (v)
 - Gracefully shutdown (server & client)
 ## Advanced Requirements:
 - Multithreading
@@ -67,3 +67,25 @@ Constraints:
 - Cloud computing platforms (AWS, Azure, GCP, ...) 
 - CI/CD
 - User authentication and authorization
+
+todo list:
+- run on docker (rustapp, postgresql db)
+    * https://dev.to/rogertorres/first-steps-with-docker-rust-30oi
+    * https://hub.docker.com/_/postgres
+    * https://myapollo.com.tw/zh-tw/bash-script-wait-for-it/
+    * https://hub.docker.com/_/rust
+    * https://medium.com/it-dead-inside/docker-containers-and-localhost-cannot-assign-requested-address-6ac7bc0d042b
+    * https://ithelp.ithome.com.tw/articles/10239305
+- refactoring (GET -> return json, not string | scheduler)
+- config initialization
+- graceful shutdown
+- user authentication process
+- OpenAPI (Swagger)
+- readme & release plan
+
+docker cmd:
+docker network create pokemon-net | docker network create -d bridge pokemon-net
+docker run --network pokemon-net -e POSTGRES_PASSWORD=test -e POSTGRES_DB=pokemon -d postgres
+# /pokemon-trading-platform/pokemon-server
+docker build -t pokemon-server .
+docker run -p 8080:8080 --network pokemon-net --rm --name pokemon-server -d pokemon-server (problem with db conn)

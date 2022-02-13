@@ -1,10 +1,36 @@
 version: '3.8'
 
 services:
+  # Build a Pokemon Server Service
+  server:
+    container_name: pokemon-server
+    build: 
+      context: ./pokemon-server/
+      dockerfile: dockerfile
+    working_dir: /server
+    volumes:
+      - .:/server
+    ports:
+      - 8080:8080
+    depends_on:
+      - database
+    networks:
+      - pokemon-net
+
   # Build a Postgresql DB Service
-  postgresql:
+  database:
     image: postgres:latest
+    container_name: pokemon-db
+    ports:
+      - 5432:5432
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: test
       POSTGRES_DB: pokemon
-    container_name: pokemon
+    networks:
+      - pokemon-net
+
+# Remeber to execute: docker network create pokemon-net
+networks:
+  pokemon-net:
+    external: true

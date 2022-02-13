@@ -17,7 +17,9 @@ impl Database {
                 // ip: localhost
                 // port: 5432
                 // db: pokemon
-                "postgresql://postgres:test@localhost:5432/pokemon",
+                // Run on Docker: postgresql://postgres:test@database:5432/pokemon
+                // Run on host: postgresql://postgres:test@localhost:5432/pokemon
+                "postgresql://postgres:test@database:5432/pokemon",
                 NoTls,
             )
             .unwrap(),
