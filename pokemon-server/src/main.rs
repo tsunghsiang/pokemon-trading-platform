@@ -148,6 +148,6 @@ async fn main() -> tide::Result<()> {
             }
         });
 
-    server.listen("127.0.0.1:8080").await?;
+    server.listen("server:8080").await?;
     Ok(())
 }

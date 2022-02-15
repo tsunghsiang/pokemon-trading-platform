@@ -17,19 +17,6 @@ services:
     networks:
       - pokemon-net
 
-  # Build a Postgresql DB Service
-  database:
-    image: postgres:latest
-    container_name: pokemon-db
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: pokemon
-    networks:
-      - pokemon-net
-
 # Remeber to execute: docker network create pokemon-net
 networks:
   pokemon-net:

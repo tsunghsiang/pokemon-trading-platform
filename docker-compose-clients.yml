@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  # Build traders
+  clients:
+    container_name: traders
+    build:
+      context: ./traders/
+      dockerfile: dockerfile
+    depends_on:
+      - server
+    networks:
+      - pokemon-net
+
+# Remeber to execute: docker network create pokemon-net
+networks:
+  pokemon-net:
+    external: true

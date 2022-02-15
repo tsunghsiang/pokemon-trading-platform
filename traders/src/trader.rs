@@ -44,7 +44,7 @@ impl Trader {
             3 => Card::Squirtle,
             _ => Card::Pikachu,
         };
-        let rsp: String = ureq::post("http://127.0.0.1:8080/api/pokemon/card")
+        let rsp: String = ureq::post("http://server:8080/api/pokemon/card")
             .set("Content-type", "application/json")
             .send_json(ureq::json!({
                 "uuid": uuid,
@@ -68,14 +68,14 @@ impl Trader {
             3 => "Squirtle",
             _ => "",
         };
-        let url: String = format!("http://127.0.0.1:8080/api/pokemon/trade/{}", card);
+        let url: String = format!("http://server:8080/api/pokemon/trade/{}", card);
         let rsp: String = ureq::get(&url).call()?.into_string()?;
         println!("{}", &rsp);
         Ok(())
     }
 
     fn get_order(&self) -> Result<(), ureq::Error> {
-        let url: String = format!("http://127.0.0.1:8080/api/pokemon/order/{}", &self.id);
+        let url: String = format!("http://server:8080/api/pokemon/order/{}", &self.id);
         let rsp: String = ureq::get(&url).call()?.into_string()?;
         println!("{}", &rsp);
         Ok(())

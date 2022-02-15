@@ -82,10 +82,13 @@ todo list:
 - user authentication process
 - OpenAPI (Swagger)
 - readme & release plan
+- optimize docker speed
 
 docker cmd:
 docker network create pokemon-net | docker network create -d bridge pokemon-net
 docker run --network pokemon-net -e POSTGRES_PASSWORD=test -e POSTGRES_DB=pokemon -d postgres
 # /pokemon-trading-platform/pokemon-server
 docker build -t pokemon-server .
-docker run -p 8080:8080 --network pokemon-net --rm --name pokemon-server -d pokemon-server (problem with db conn)
+docker run -p 8080:8080 --network pokemon-net --rm --name pokemon-server -d pokemon-server
+
+Transport(Transport { kind: ConnectionFailed, message: Some("Connect error"), url: Some(Url { scheme: "http", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("pokemon-server")), port: Some(8080), path: "/api/pokemon/order/1", query: None, fragment: None }), source: Some(Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }) })
