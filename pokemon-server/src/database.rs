@@ -1,7 +1,9 @@
 use crate::data_type::{Card, OrderStatus, RequestOrder, Side};
+use crate::settings::Settings;
 use contracts::*;
 use postgres::{Client, NoTls, Row};
 use uuid::Uuid;
+use std::env;
 
 pub struct Database {
     client: Client,
@@ -10,16 +12,21 @@ pub struct Database {
 impl Database {
     #[ensures(ret.is_connected() == true, "database is connected")]
     pub fn new() -> Self {
+        // Obtain config file path
+        let mut args = env::args();
+        let database = match args.nth(1) {
+            Some(config) => {
+                let cfg = Settings::new(config);
+                cfg.get_database_url()
+            },
+            None => {
+                String::from("postgresql://postgres:test@localhost:5432/pokemon")
+            }
+        };
+
         let mut db = Database {
             client: Client::connect(
-                // prefix: postgresql://postgres
-                // pwd: test
-                // ip: localhost
-                // port: 5432
-                // db: pokemon
-                // Run on Docker: postgresql://postgres:test@database:5432/pokemon
-                // Run on host: postgresql://postgres:test@localhost:5432/pokemon
-                "postgresql://postgres:test@database:5432/pokemon",
+                database.as_str(),
                 NoTls,
             )
             .unwrap(),

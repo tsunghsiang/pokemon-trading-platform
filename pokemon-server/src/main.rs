@@ -1,8 +1,14 @@
+#[macro_use]
+extern crate ini;
+
 use data_type::{Card, RequestOrder};
 use scheduler::Scheduler;
 use std::sync::{Arc, Mutex};
 use tide::Request;
+use std::env;
+use settings::Settings;
 
+mod settings;
 mod data_type;
 mod scheduler;
 mod status_board;
@@ -12,6 +18,22 @@ mod database;
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {
+    // Obtain config file path
+    let mut args = env::args();
+    if args.len() != 2 {
+        panic!("Usage: ./[executable] [config_file_path]");
+    }
+
+    let mut srv = match args.nth(1) {
+        Some(config) => {
+            let cfg = Settings::new(config);
+            cfg.get_server_url()
+        },
+        None => {
+            String::from("localhost:8080")
+        }
+    };
+
     let scheduler = Arc::new(Mutex::new(Scheduler::new()));
     scheduler.lock().unwrap().recover();
     
@@ -148,6 +170,6 @@ async fn main() -> tide::Result<()> {
             }
         });
 
-    server.listen("server:8080").await?;
+    server.listen(srv).await?;
     Ok(())
 }

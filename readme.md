@@ -69,7 +69,7 @@ Constraints:
 - User authentication and authorization
 
 todo list:
-- run on docker (rustapp, postgresql db)
+V - run on docker (rustapp, postgresql db)
     * https://dev.to/rogertorres/first-steps-with-docker-rust-30oi
     * https://hub.docker.com/_/postgres
     * https://myapollo.com.tw/zh-tw/bash-script-wait-for-it/
@@ -77,7 +77,7 @@ todo list:
     * https://medium.com/it-dead-inside/docker-containers-and-localhost-cannot-assign-requested-address-6ac7bc0d042b
     * https://ithelp.ithome.com.tw/articles/10239305
 - refactoring (GET -> return json, not string | scheduler)
-- config initialization
+V - config initialization
 - graceful shutdown
 - user authentication process
 - OpenAPI (Swagger)

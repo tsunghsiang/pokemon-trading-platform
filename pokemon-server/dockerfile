@@ -1,4 +1,4 @@
 FROM rust:1.58.1
 COPY . .
 RUN cargo build
-CMD ["../target/debug/pokemon-server"]
+CMD ["../target/debug/pokemon-server", "pokemon-server/config/docker.ini"]

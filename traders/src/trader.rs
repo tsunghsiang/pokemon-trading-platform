@@ -1,4 +1,5 @@
 use crate::data_type::{Card, Side};
+use crate::settings::Settings;
 use chrono::prelude::*;
 use rand::Rng;
 use std::{thread, time};
@@ -6,11 +7,12 @@ use uuid::Uuid;
 
 pub struct Trader {
     id: i32,
+    config: Settings,
 }
 
 impl Trader {
-    pub fn new(id: i32) -> Self {
-        Trader { id }
+    pub fn new(id: i32, config: Settings) -> Self {
+        Trader { id, config }
     }
 
     pub fn send_request(&self) {
@@ -44,7 +46,8 @@ impl Trader {
             3 => Card::Squirtle,
             _ => Card::Pikachu,
         };
-        let rsp: String = ureq::post("http://server:8080/api/pokemon/card")
+        let url = format!("http://{}/api/pokemon/card", &self.config.get_connected_url());
+        let rsp: String = ureq::post(url.as_str())
             .set("Content-type", "application/json")
             .send_json(ureq::json!({
                 "uuid": uuid,
@@ -67,15 +70,15 @@ impl Trader {
             2 => "Charmander",
             3 => "Squirtle",
             _ => "",
-        };
-        let url: String = format!("http://server:8080/api/pokemon/trade/{}", card);
+        };     
+        let url: String = format!("http://{}/api/pokemon/trade/{}", &self.config.get_connected_url(), card);
         let rsp: String = ureq::get(&url).call()?.into_string()?;
         println!("{}", &rsp);
         Ok(())
     }
 
     fn get_order(&self) -> Result<(), ureq::Error> {
-        let url: String = format!("http://server:8080/api/pokemon/order/{}", &self.id);
+        let url: String = format!("http://{}/api/pokemon/order/{}", &self.config.get_connected_url(), &self.id);
         let rsp: String = ureq::get(&url).call()?.into_string()?;
         println!("{}", &rsp);
         Ok(())
