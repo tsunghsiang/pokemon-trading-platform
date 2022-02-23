@@ -1,94 +1,78 @@
-Restful API Specification: (JSON)
+# Introduction
 
-OrderStatus {
-    Ordered,
-    Filled
-}
+The side project is essentially an interview assignment from [FST network](https://www.twincn.com/item.aspx?no=50763592). It aims to craft a simple pokemon-card trading platform for those who would like to buy/sell their own cards and query transaction statuses.
 
-RequestOrder {
-    tm: timestamp,
-    type: BUY/SELL,
-    order_px: f64,
-    card: { Pikachu/Bulbasaur/Charmander/Squirtle },
-    trader_id: i32 (unique)    
-}
+Different from other interviewees, I decided to complete the project in [Rust](https://www.rust-lang.org/). The corresponding tests, containerization, api specifications and db schemas are involved in the following sections. 
 
-OrderReport {
-    tm: timestamp,
-    type: BUY/SELL,
-    order_status: { ordered, filled },
-    order_px: f64,
-    card_type: { Pikachu/Bulbasaur/Charmander/Squirtle },
-    trader_id: i32 (unique)
-}
+# Prerequisites
 
-FillReport {
-    tm: timestamp,
-    order_status: { ordered, filled },
-    trade_px: f64,
-    card_type: { Pikachu/Bulbasaur/Charmander/Squirtle }
-    buy_side: i32 (unique)
-    sell_side: i32 (unique)
-}
+Remember to be ready with the following requirements if you would like to run the project on your machine as well as on docker containers.
 
+- [Rust Toolchain](https://www.rust-lang.org/learn/get-started)
+- [Docker Desktop](https://www.docker.com/get-started)
+- [Postgres Database 14.1](https://www.postgresql.org/download/)
+
+# Restful API Specifications
 POST /api/pokemon/card: buy/sell a card
-GET /api/pokemon/trade/:card: view the latest 50 trades on each kind of card
-GET /api/pokemon/order/:id: view the status of latest 50 orders of a specific trader
-
-curl localhost:8080/api/pokemon/card -X POST -H "Content-type:application/json" -d @test-script/post.json
-curl -X GET localhost:8080/api/pokemon/trade/:card
-curl -X GET localhost:8080/api/pokemon/order/:id
-
-Constraints:
+GET /api/pokemon/trade/{card}: view the latest 50 trades on each kind of card
+GET /api/pokemon/order/{id}: view the status of latest 50 orders of a specific trader
+# Logical Architecture
+# Trading Contraints
 1. card = { Pikachu, Bulbasaur, Charmander, Squirtle }
 2. 1.00 <= price if a card <= 10.00 USD
 3. total 10K users
 4. A trader can only buy/sell 1 card per order at one time
 5. Order Processing: FIFO
 6. Tx occurs when (B: buy price of an buy order, S: sell price of a sell order)
-   1. [BUY] S <= B && S is the lowest among all sell orders. Tx price is at S
-   2. [SELL] S <= B && B is the highest among all buy orders, Tx proce is at B 
+	- [BUY] S <= B && S is the lowest among all sell orders. Tx price is at S
+	- [SELL] S <= B && B is the highest among all buy orders, Tx price is at B
 7. Traders can view the status of their latest 50 orders.
 8. Traders can view the latest 50 trades on each kind of cards.
 9. If the sequence of orders is fixed, the results must be the same no matter how many times you execute the sequence.
+   
+# DB Schema
 
-## Basic Requirements:
-- RESTful API (v)
-- Relational database (PostgreSQL, MySQL, ...) (v)
-- Containerize (Docker)
-- Testing (v)
-- Gracefully shutdown (server & client)
-## Advanced Requirements:
-- Multithreading
-- Maximize performance of finishing 1M orders
-- OpenAPI (Swagger)
-- Set up configs using environment variables
-- Docker Compose
-- Cloud computing platforms (AWS, Azure, GCP, ...) 
-- CI/CD
-- User authentication and authorization
+![pokemon database schema](./images/pokemon-db-schema.png)
 
-todo list:
-V - run on docker (rustapp, postgresql db)
-    * https://dev.to/rogertorres/first-steps-with-docker-rust-30oi
-    * https://hub.docker.com/_/postgres
-    * https://myapollo.com.tw/zh-tw/bash-script-wait-for-it/
-    * https://hub.docker.com/_/rust
-    * https://medium.com/it-dead-inside/docker-containers-and-localhost-cannot-assign-requested-address-6ac7bc0d042b
-    * https://ithelp.ithome.com.tw/articles/10239305
-- refactoring (GET -> return json, not string | scheduler)
-V - config initialization
-- graceful shutdown
-- user authentication process
-- OpenAPI (Swagger)
-- readme & release plan
-- optimize docker speed
+|Table Name|request_table|status_table|trade_table|
+|-|-|-|-|
+|**Usage**|The table records whole requests from traders, which is updated when an order comes in.|The table stores the latest order status with corresponding uuid. Once status of an order is updated, so is the table.|The table contains records of filled orders. That is to say, when buy-side and sell-side have traded with each other, the table is updated as well.
 
-docker cmd:
-docker network create pokemon-net | docker network create -d bridge pokemon-net
-docker run --network pokemon-net -e POSTGRES_PASSWORD=test -e POSTGRES_DB=pokemon -d postgres
-# /pokemon-trading-platform/pokemon-server
-docker build -t pokemon-server .
-docker run -p 8080:8080 --network pokemon-net --rm --name pokemon-server -d pokemon-server
+Let's dig deeper into the columns of each table. The thing you should bear in mind is that all tables are correlated with specific `uuid`, which is an unique identifier of an order, so that you could query state of an order with it .
 
-Transport(Transport { kind: ConnectionFailed, message: Some("Connect error"), url: Some(Url { scheme: "http", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("pokemon-server")), port: Some(8080), path: "/api/pokemon/order/1", query: None, fragment: None }), source: Some(Os { code: 111, kind: ConnectionRefused, message: "Connection refused" }) })
+First of all, let's investigate columns of table `request_table`
+|Column|uuid|tm|side|order_px|vol|card|trader_id|
+|:-|-|-|-|-|-|-|-|
+|**Type**|uuid|timestamp|side (enum)|double|integer|card|integer|
+|**Description**|unique id of an order|order time|Buy/Sell|order price|order volume|card type|unique trader-specific id|
+
+Secondly, `status_table` records status of orders when an order is confirmed or filled in matching process.
+|Column|uuid|status|
+|:-|-|-|
+|**Type**|uuid|orderstatus (enum)|
+|**Description**|unique id of an order|Confirmed/Filled|
+
+Lastly, we adopt a `trade_table` to store all *traded transactions* for further history queries.
+|Column|buy_uuid|sell_uuid|buy_side_id|sell_side_id|tx_price|tx_vol|card|
+|:-|-|-|-|-|-|-|-|
+|**Type**|uuid|uuid|integer|integer|double|integer|card (enum)|
+|**Description**|unique id of buy-side user|unique id of sell-side user|buy-side trader id|sell-side trader id|traded price|traded quantity|Pikachu/Bulbasaur/Charmander/Squirtle|
+
+# Unit Tests Report
+# Configuration
+# Run on Local Host
+curl localhost:8080/api/pokemon/card -X POST -H "Content-type:application/json" -d @test-script/post.json
+curl -X GET localhost:8080/api/pokemon/trade/:card
+curl -X GET localhost:8080/api/pokemon/order/:id
+# Run on Docker Container
+# Todo List
+- [x] Restful API
+- [x] Relational database (PostgreSQL, MySQL, ...)
+- [x] Containerize (Docker & Docker Compose) 
+- [ ] Graceful shutdown (server & client)
+- [x] Testing
+- [x] Multithreading
+- [ ] OpenAPI (Swagger)
+- [x] Set up configurations using environment variables
+- [ ] Refactoring 
+- [ ] Optimize docker activation speed
