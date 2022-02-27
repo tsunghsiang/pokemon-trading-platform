@@ -69,7 +69,7 @@ curl -X GET localhost:8080/api/pokemon/order/:id
 - [x] Restful API
 - [x] Relational database (PostgreSQL, MySQL, ...)
 - [x] Containerize (Docker & Docker Compose) 
-- [ ] Graceful shutdown (server & client)
+- [x] Graceful shutdown (server & client)
 - [x] Testing
 - [x] Multithreading
 - [ ] OpenAPI (Swagger)

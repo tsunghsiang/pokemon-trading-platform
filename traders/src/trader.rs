@@ -20,9 +20,24 @@ impl Trader {
         loop {
             let op: i32 = rand::thread_rng().gen_range(0..3);
             match op {
-                0 => self.post_order().unwrap(),
-                1 => self.get_trade().unwrap(),
-                2 => self.get_order().unwrap(),
+                0 => {
+                    match self.post_order() {
+                        Ok(_) => {},
+                        Err(e) => { println!("Kind: {}", e.kind()); }
+                    }
+                },
+                1 => {
+                    match self.get_trade() {
+                        Ok(_) => {},
+                        Err(e) => { println!("Kind: {}", e.kind()); }
+                    }
+                },
+                2 => {
+                    match self.get_order() {
+                        Ok(_) => {},
+                        Err(e) => { println!("Kind: {}", e.kind()); }
+                    }
+                },
                 _ => {}
             }
             thread::sleep(wait_tm);

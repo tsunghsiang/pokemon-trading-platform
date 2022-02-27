@@ -16,3 +16,5 @@ postgres = { version = "0.19.2", features = ["with-uuid-0_8", "with-chrono-0_4",
 postgres-types = { version = "0.2.2", features = ["derive"] }
 contracts = "0.6.2"
 ini = "1.3.0"
+graceful = "0.1.1"
+ctrlc = "3.2.1"
