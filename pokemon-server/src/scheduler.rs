@@ -2,7 +2,7 @@ use crate::data_type::{Card, OrderStatus, ProcessResult, RequestOrder, Side};
 use crate::database;
 use crate::status_board::{Stats, StatusBoard};
 use crate::trade_board::{Trade, TradeBoard};
-use crate::tx_board::{Tag, TxBoard};
+use crate::tx_board::{Tag, TxBoard, CardBoard, Volume};
 
 use postgres::Row;
 use chrono::Utc;
@@ -30,7 +30,7 @@ impl Scheduler {
             status_board: StatusBoard::new(),
             db: Database::new(),
         }
-    }
+    }    
 
     pub fn process(&mut self, req: &RequestOrder) -> ProcessResult {
         let mut proc_res: ProcessResult = ProcessResult::TxConfirmed;
@@ -46,9 +46,10 @@ impl Scheduler {
                         if let Some(volume) = sell_card_board.get_mut(&px) {
                             // Buy order traded
                             if volume.get_vol() > &0 && req.get_order_px() >= (px as f64) {
-                                // update tx_board
-                                let mut uuid: Uuid;
+                                let mut uuid: Uuid = Uuid::new_v4();
                                 let mut sell_side_id: i32 = -1;
+
+                                // update tx_board
                                 volume.set_vol(volume.get_vol() - 1);
                                 if let Some(tag) = volume.pop_trader() {
                                     uuid = tag.clone().get_uuid();
@@ -57,58 +58,7 @@ impl Scheduler {
                                     break ProcessResult::TxBoardUpdateFail;
                                 }
 
-                                // update trade_board
-                                let trade = Trade::new(
-                                    Utc::now(),
-                                    req.get_trade_id(),
-                                    sell_side_id,
-                                    px as f64,
-                                    req.get_vol(),
-                                );
-                                self.trade_board.add_trade(&req.get_card(), trade);
-                                self.db.insert_trade_table(
-                                    &req.get_uuid(),
-                                    &uuid,
-                                    &req.get_trade_id(),
-                                    &sell_side_id,
-                                    &(px as f64),
-                                    &req.get_vol(),
-                                    &card,
-                                );
-
-                                // update status board
-                                // update sell-side's status_board (update)
-                                self.status_board.update_status(
-                                    sell_side_id,
-                                    uuid,
-                                    OrderStatus::Filled,
-                                );
-                                self.db.update_order_status(&uuid, &OrderStatus::Filled);
-
-                                // update buy-side's status board (add)
-                                let stats = Stats::new(
-                                    req.get_uuid(),
-                                    Utc::now(),
-                                    Side::Buy,
-                                    req.get_order_px(),
-                                    req.get_vol(),
-                                    req.get_card(),
-                                    OrderStatus::Filled,
-                                );
-                                self.status_board.add_status(
-                                    req.get_trade_id(),
-                                    req.get_uuid(),
-                                    stats,
-                                );
-                                self.db
-                                    .insert_order_status(&req.get_uuid(), &OrderStatus::Filled);
-
-                                println!(
-                                    "[BUY][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
-                                    &card,
-                                    &px,
-                                    req.get_vol()
-                                );
+                                update_traded_boards(&mut self.trade_board, &mut self.status_board, &mut self.db, &sell_side_id, &(px as f64), &req, Side::Sell, &uuid, &card);
                                 break ProcessResult::TxFilled;
                             } else {
                                 px += 1;
@@ -116,37 +66,7 @@ impl Scheduler {
                         }
 
                         if px > 10 {
-                            // update tx_board
-                            let buy_card_board = res.get_bs_board(Side::Buy);
-                            let tag = Tag::new(req.get_trade_id(), req.get_uuid());
-                            if let Some(cur_vol) =
-                                buy_card_board.get_mut(&(req.get_order_px() as i32))
-                            {
-                                cur_vol.set_vol(cur_vol.get_vol() + req.get_vol());
-                                cur_vol.push_trader(tag);
-                            }
-
-                            // update status baord
-                            let stats = Stats::new(
-                                req.get_uuid(),
-                                req.get_tm(),
-                                req.get_side(),
-                                req.get_order_px(),
-                                req.get_vol(),
-                                req.get_card(),
-                                OrderStatus::Confirmed,
-                            );
-                            self.status_board
-                                .add_status(req.get_trade_id(), req.get_uuid(), stats);
-                            self.db
-                                .insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
-                            println!(
-                                "[BUY][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
-                                req.get_card(),
-                                req.get_order_px(),
-                                req.get_vol(),
-                                req.get_trade_id()
-                            );
+                            update_untraded_boards(res, &mut self.status_board, &mut self.db, Side::Buy, req);
                             break ProcessResult::TxConfirmed;
                         }
                     }
@@ -158,9 +78,10 @@ impl Scheduler {
                         if let Some(volume) = buy_card_board.get_mut(&px) {
                             // Sell order traded
                             if volume.get_vol() > &0 && req.get_order_px() <= (px as f64) {
-                                // update tx_board
-                                let mut uuid: Uuid;
+                                let mut uuid: Uuid = Uuid::new_v4();
                                 let mut buy_side_id: i32 = -1;
+
+                                // update tx_board
                                 volume.set_vol(volume.get_vol() - 1);
                                 if let Some(tag) = volume.pop_trader() {
                                     uuid = tag.clone().get_uuid();
@@ -169,96 +90,14 @@ impl Scheduler {
                                     break ProcessResult::TxBoardUpdateFail;
                                 }
 
-                                // update trade_board
-                                let trade = Trade::new(
-                                    Utc::now(),
-                                    buy_side_id,
-                                    req.get_trade_id(),
-                                    px as f64,
-                                    req.get_vol(),
-                                );
-                                self.trade_board.add_trade(&req.get_card(), trade);
-                                self.db.insert_trade_table(
-                                    &uuid,
-                                    &req.get_uuid(),
-                                    &buy_side_id,
-                                    &req.get_trade_id(),
-                                    &(px as f64),
-                                    &req.get_vol(),
-                                    &card,
-                                );
-
-                                // update status board
-                                // update buy-side's status_board (update)
-                                self.status_board.update_status(
-                                    buy_side_id,
-                                    uuid,
-                                    OrderStatus::Filled,
-                                );
-                                self.db.update_order_status(&uuid, &OrderStatus::Filled);
-
-                                // update sell-side's status board (add)
-                                let stats = Stats::new(
-                                    req.get_uuid(),
-                                    Utc::now(),
-                                    Side::Sell,
-                                    req.get_order_px(),
-                                    req.get_vol(),
-                                    req.get_card(),
-                                    OrderStatus::Filled,
-                                );
-                                self.status_board.add_status(
-                                    req.get_trade_id(),
-                                    req.get_uuid(),
-                                    stats,
-                                );
-                                self.db
-                                    .insert_order_status(&req.get_uuid(), &OrderStatus::Filled);
-
-                                println!(
-                                    "[SELL][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
-                                    &card,
-                                    &px,
-                                    req.get_vol()
-                                );
+                                update_traded_boards(&mut self.trade_board, &mut self.status_board, &mut self.db, &buy_side_id, &(px as f64), &req, Side::Sell, &uuid, &card);
                                 break ProcessResult::TxFilled;
                             } else {
                                 px -= 1;
                             }
                         }
                         if px < 1 {
-                            // update tx_board
-                            let sell_card_board = res.get_bs_board(Side::Sell);
-                            let tag = Tag::new(req.get_trade_id(), req.get_uuid());
-                            if let Some(cur_vol) =
-                                sell_card_board.get_mut(&(req.get_order_px() as i32))
-                            {
-                                cur_vol.set_vol(cur_vol.get_vol() + req.get_vol());
-                                cur_vol.push_trader(tag);
-                            }
-
-                            // update status board
-                            let stats = Stats::new(
-                                req.get_uuid(),
-                                req.get_tm(),
-                                req.get_side(),
-                                req.get_order_px(),
-                                req.get_vol(),
-                                req.get_card(),
-                                OrderStatus::Confirmed,
-                            );
-                            self.status_board
-                                .add_status(req.get_trade_id(), req.get_uuid(), stats);
-                            self.db
-                                .insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
-
-                            println!(
-                                "[SELL][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
-                                req.get_card(),
-                                req.get_order_px(),
-                                req.get_vol(),
-                                req.get_trade_id()
-                            );
+                            update_untraded_boards(res, &mut self.status_board, &mut self.db, Side::Sell, req);
                             break ProcessResult::TxConfirmed;
                         }
                     }
@@ -343,6 +182,130 @@ impl Scheduler {
             self.tx_board.add_tx_req(&req);
         }
     }
+}
+
+pub fn update_untraded_tx_board(board: &mut CardBoard, req: &RequestOrder, side: Side) {
+    let card_board = board.get_bs_board(side);
+    let tag = Tag::new(req.get_trade_id(), req.get_uuid());
+    if let Some(cur_vol) =
+        card_board.get_mut(&(req.get_order_px() as i32))
+    {
+        cur_vol.set_vol(cur_vol.get_vol() + req.get_vol());
+        cur_vol.push_trader(tag);
+    }          
+}
+
+pub fn update_untraded_status_board(board: &mut StatusBoard, db: &mut Database, req: &RequestOrder) {
+    let stats = Stats::new(
+        req.get_uuid(),
+        req.get_tm(),
+        req.get_side(),
+        req.get_order_px(),
+        req.get_vol(),
+        req.get_card(),
+        OrderStatus::Confirmed,
+    );
+    board.add_status(req.get_trade_id(), req.get_uuid(), stats);
+    db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
+}
+
+pub fn update_untraded_boards(card_board: &mut CardBoard, status_board: &mut StatusBoard, db: &mut Database, side: Side, req: &RequestOrder) {
+    // update tx_board
+    update_untraded_tx_board(card_board, req, side);
+    // update status board
+    update_untraded_status_board(status_board, db, req);
+    println!(
+        "[BUY][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
+        req.get_card(),
+        req.get_order_px(),
+        req.get_vol(),
+        req.get_trade_id()
+    );
+}
+
+pub fn update_traded_trade_board(trader_id: &i32, traded_px: &f64, req: &RequestOrder, board: &mut TradeBoard, db: &mut Database, uuid: &Uuid, card: &Card) {
+    let trade = match req.get_side() {
+        Side::Buy => {
+            Trade::new(
+                Utc::now(),
+                req.get_trade_id(),
+                *trader_id,
+                *traded_px,
+                req.get_vol(),
+            )
+        },
+        Side::Sell => {
+            Trade::new(
+                Utc::now(),
+                *trader_id,
+                req.get_trade_id(),
+                *traded_px,
+                req.get_vol(),
+            )
+        },
+        _ => {
+            Trade::new(
+                Utc::now(),
+                req.get_trade_id(),
+                *trader_id,
+                *traded_px,
+                req.get_vol(),
+            )
+        }
+    };
+    board.add_trade(&req.get_card(), trade);
+    db.insert_trade_table(
+        &uuid,
+        &req.get_uuid(),
+        trader_id,
+        &req.get_trade_id(),
+        &traded_px,
+        &req.get_vol(),
+        &card,
+    );
+}
+
+pub fn update_opposite_status_board(board: &mut StatusBoard, db: &mut Database, opposite: &i32, uuid: &Uuid) {
+    board.update_status(
+        *opposite,
+        *uuid,
+        OrderStatus::Filled,
+    );
+    db.update_order_status(&uuid, &OrderStatus::Filled);
+}
+
+pub fn update_traded_status_board(req: &RequestOrder, side: Side, board: &mut StatusBoard, db: &mut Database) {
+    let stats = Stats::new(
+        req.get_uuid(),
+        Utc::now(),
+        Side::Sell,
+        req.get_order_px(),
+        req.get_vol(),
+        req.get_card(),
+        OrderStatus::Filled,
+    );
+    board.add_status(
+        req.get_trade_id(),
+        req.get_uuid(),
+        stats,
+    );
+    db.insert_order_status(&req.get_uuid(), &OrderStatus::Filled);
+}
+
+pub fn update_traded_boards(trade_board: &mut TradeBoard, status_board: &mut StatusBoard, db: &mut Database, id: &i32, traded_px: &f64, req: &RequestOrder, side: Side, uuid: &Uuid, card: &Card) {
+    // update trade_board
+    update_traded_trade_board(id, traded_px, req, trade_board, db, uuid, card);
+    // update status board
+    // update opposite-side's status_board (update)
+    update_opposite_status_board(status_board, db, id, uuid);
+    // update self-side's status board (add)
+    update_traded_status_board(req, side, status_board, db);
+    println!(
+        "[SELL][FILLED] Card: {:?}, TxPrice: {}, TxVol: {}",
+        &card,
+        &traded_px,
+        req.get_vol()
+    );    
 }
 
 #[cfg(test)]

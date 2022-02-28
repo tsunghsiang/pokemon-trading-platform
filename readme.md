@@ -74,5 +74,6 @@ curl -X GET localhost:8080/api/pokemon/order/:id
 - [x] Multithreading
 - [ ] OpenAPI (Swagger)
 - [x] Set up configurations using environment variables
-- [ ] Refactoring 
+- [x] Refactoring
+- [ ] Readme 
 - [ ] Optimize docker activation speed
