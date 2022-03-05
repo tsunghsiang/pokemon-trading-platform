@@ -49,6 +49,17 @@ impl Scheduler {
                                 let mut uuid: Uuid = Uuid::new_v4();
                                 let mut sell_side_id: i32 = -1;
 
+                                // check if self-traded occurs
+                                if let Some(tag) = volume.get_front_trader() {
+                                    if tag.clone().get_id() == req.get_trade_id() {
+                                        // update status board
+                                        update_untraded_status_board(&mut self.status_board, &mut self.db, &req, OrderStatus::Dropped);
+                                        break ProcessResult::TxSelfTraded;
+                                    }
+                                } else {
+                                    break ProcessResult::TxBoardUpdateFail;
+                                }
+
                                 // update tx_board
                                 volume.set_vol(volume.get_vol() - 1);
                                 if let Some(tag) = volume.pop_trader() {
@@ -80,6 +91,17 @@ impl Scheduler {
                             if volume.get_vol() > &0 && req.get_order_px() <= (px as f64) {
                                 let mut uuid: Uuid = Uuid::new_v4();
                                 let mut buy_side_id: i32 = -1;
+
+                                // check if self-traded occurs
+                                if let Some(tag) = volume.get_front_trader() {
+                                    if tag.clone().get_id() == req.get_trade_id() {
+                                        // update status board
+                                        update_untraded_status_board(&mut self.status_board, &mut self.db, &req, OrderStatus::Dropped);
+                                        break ProcessResult::TxSelfTraded;
+                                    }
+                                } else {
+                                    break ProcessResult::TxBoardUpdateFail;
+                                }
 
                                 // update tx_board
                                 volume.set_vol(volume.get_vol() - 1);
@@ -195,7 +217,7 @@ pub fn update_untraded_tx_board(board: &mut CardBoard, req: &RequestOrder, side:
     }          
 }
 
-pub fn update_untraded_status_board(board: &mut StatusBoard, db: &mut Database, req: &RequestOrder) {
+pub fn update_untraded_status_board(board: &mut StatusBoard, db: &mut Database, req: &RequestOrder, status: OrderStatus) {
     let stats = Stats::new(
         req.get_uuid(),
         req.get_tm(),
@@ -203,17 +225,17 @@ pub fn update_untraded_status_board(board: &mut StatusBoard, db: &mut Database, 
         req.get_order_px(),
         req.get_vol(),
         req.get_card(),
-        OrderStatus::Confirmed,
+        status.clone(),
     );
     board.add_status(req.get_trade_id(), req.get_uuid(), stats);
-    db.insert_order_status(&req.get_uuid(), &OrderStatus::Confirmed);
+    db.insert_order_status(&req.get_uuid(), &status);
 }
 
 pub fn update_untraded_boards(card_board: &mut CardBoard, status_board: &mut StatusBoard, db: &mut Database, side: Side, req: &RequestOrder) {
     // update tx_board
     update_untraded_tx_board(card_board, req, side);
     // update status board
-    update_untraded_status_board(status_board, db, req);
+    update_untraded_status_board(status_board, db, req, OrderStatus::Confirmed);
     println!(
         "[BUY][CONFIRMED] Card: {:?}, OrderPx: {}, Volume: {}, TradeId: {}",
         req.get_card(),
@@ -1483,5 +1505,77 @@ mod tests {
         } else {
             panic!("[ERROR] Test Failed: stat does not exist in status_board");
         }
+    }
+
+    #[test]
+    fn given_there_is_a_sell_order_when_a_buy_order_with_same_trader_id_and_tradable_px_then_dropped(){
+        let mut scheduler = Scheduler::new();
+        // generate a sell order with both price 1.0, quantity 1 and trader_id 5
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            1.00,
+            1,
+            Card::Bulbasaur,
+            5,
+        );
+        let sell_req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);        
+        
+        // process the sell order
+        assert_eq!(ProcessResult::TxConfirmed, scheduler.process(&sell_req));
+        
+        // generate a buy order with both price 2.0 and trader_id 5
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Buy,
+            1.00,
+            1,
+            Card::Bulbasaur,
+            5,
+        );
+        let buy_req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);         
+        
+        // process the buy order and check expected results
+        assert_eq!(ProcessResult::TxSelfTraded, scheduler.process(&buy_req));
+        assert_eq!(true, scheduler.db.request_exist(&uuid));
+        assert_eq!(OrderStatus::Dropped, scheduler.db.get_order_status(&uuid));
+    }
+
+    #[test]
+    fn given_there_is_a_buy_order_when_a_sell_order_with_same_trader_id_and_tradable_px_then_dropped(){
+        let mut scheduler = Scheduler::new();
+        // generate a buy order with both price 6.0, quantity 1 and trader_id 5
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Buy,
+            6.00,
+            1,
+            Card::Bulbasaur,
+            5,
+        );
+        let buy_req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);        
+        
+        // process the sell order
+        assert_eq!(ProcessResult::TxConfirmed, scheduler.process(&buy_req));
+        
+        // generate a sell order with both price 2.0 and trader_id 5
+        let (uuid, tm, side, order_px, vol, card, trade_id) = (
+            Uuid::new_v4(),
+            Utc::now(),
+            Side::Sell,
+            2.00,
+            1,
+            Card::Bulbasaur,
+            5,
+        );
+        let sell_req = RequestOrder::new(uuid, tm, side, order_px, vol, card, trade_id);         
+        
+        // process the buy order and check expected results
+        assert_eq!(ProcessResult::TxSelfTraded, scheduler.process(&sell_req));
+        assert_eq!(true, scheduler.db.request_exist(&uuid));
+        assert_eq!(OrderStatus::Dropped, scheduler.db.get_order_status(&uuid));
     }
 }

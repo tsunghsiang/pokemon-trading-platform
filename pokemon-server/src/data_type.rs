@@ -4,10 +4,17 @@ use tide::prelude::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ProcessStatus {
+    Success,
+    Failed,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ProcessResult {
     TxConfirmed,
     TxFilled,
     TxBoardUpdateFail,
+    TxSelfTraded,
     UnknownCard,
     // add other status here based on real conditions
 }
@@ -19,6 +26,8 @@ pub enum OrderStatus {
     Confirmed,
     #[postgres(name = "Filled")]
     Filled,
+    #[postgres(name = "Dropped")]
+    Dropped,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, ToSql, FromSql)]
@@ -101,5 +110,14 @@ impl RequestOrder {
 
     pub fn get_trade_id(&self) -> i32 {
         self.trader_id
+    }
+
+    pub fn to_str(&self) -> String {
+        let mut res = String::from("");
+        let fmt = format!(" uuid: {}, tm: {}, side: {:?}, order_px: {}, vol: {}, card: {:?}, trade_id: {} ", self.uuid, self.tm, self.side, self.order_px, self.vol, self.card, self.trader_id);
+        res.push('{');
+        res.push_str(&fmt);
+        res.push('}');
+        res
     }
 }

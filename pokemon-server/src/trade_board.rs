@@ -49,6 +49,15 @@ impl Trade {
     pub fn get_tx_vol(&self) -> &i32 {
         &self.tx_vol
     }
+
+    pub fn to_str(&self) -> String {
+        let mut res = String::from("");
+        let fmt = format!(" tx_time: {}, buy_side: {}, sell_side: {}, tx_price: {}, tx_vol: {} ", self.tx_time, self.buy_side, self.sell_side, self.tx_price, self.tx_vol);
+        res.push('{');
+        res.push_str(&fmt);
+        res.push('}');
+        res
+    }
 }
 
 #[derive(Debug, Clone)]

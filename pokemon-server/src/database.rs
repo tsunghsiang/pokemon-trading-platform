@@ -66,7 +66,7 @@ impl Database {
         // create enum 'OrderStatus'
         if !self.enum_type_exist("orderstatus") {
             self.client
-                .batch_execute("CREATE TYPE orderstatus AS ENUM('Confirmed', 'Filled');")
+                .batch_execute("CREATE TYPE orderstatus AS ENUM('Confirmed', 'Filled', 'Dropped');")
                 .unwrap();
         }
 

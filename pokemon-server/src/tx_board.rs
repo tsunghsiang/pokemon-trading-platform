@@ -45,6 +45,10 @@ impl Volume {
         self.vol = vol;
     }
 
+    pub fn get_front_trader(&self) -> Option<&Tag> {
+        self.traders.front()
+    }
+
     pub fn pop_trader(&mut self) -> Option<Tag> {
         self.traders.pop_front()
     }

@@ -29,6 +29,7 @@ GET /api/pokemon/order/{id}: view the status of latest 50 orders of a specific 
 7. Traders can view the status of their latest 50 orders.
 8. Traders can view the latest 50 trades on each kind of cards.
 9. If the sequence of orders is fixed, the results must be the same no matter how many times you execute the sequence.
+10. Self-trade is disallowed
    
 # DB Schema
 

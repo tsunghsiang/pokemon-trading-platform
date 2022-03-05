@@ -63,6 +63,15 @@ impl Stats {
     pub fn get_status(&self) -> &OrderStatus {
         &self.status
     }
+
+    pub fn to_str(&self) -> String {
+        let mut res = String::from("");
+        let fmt = format!(" uuid: {}, tm: {}, side: {:?}, order_px: {}, vol: {}, card: {:?}, status: {:?} ", self.uuid, self.tm, self.side, self.order_px, self.vol, self.card, self.status);
+        res.push('{');
+        res.push_str(&fmt);
+        res.push('}');
+        res
+    }    
 }
 
 #[derive(Debug, Clone)]

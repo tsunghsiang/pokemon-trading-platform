@@ -2,7 +2,7 @@
 extern crate ini;
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use data_type::{Card, RequestOrder};
+use data_type::{Card, RequestOrder, ProcessStatus};
 use scheduler::Scheduler;
 use std::sync::{Arc, Mutex};
 use tide::Request;
@@ -82,6 +82,15 @@ pub fn signal_handler(terminator: &std::sync::Arc<std::sync::Mutex<scheduler::Sc
     std::thread::spawn(move || shudown_checker(&handler));    
 }
 
+pub fn form_response(status: ProcessStatus, msg: &str, data: &str) -> String {
+    let mut rsp = String::from("");
+    let res = format!(" status: '{:?}', message: {}, data: {} ", status, msg, data);
+    rsp.push('{');
+    rsp.push_str(&res);
+    rsp.push('}');
+    rsp
+}
+
 #[async_std::main]
 async fn main() -> tide::Result<()> {
     // Obtain config file path
@@ -120,11 +129,11 @@ async fn main() -> tide::Result<()> {
             async move {
                 if !STOP.load(Ordering::Acquire) {
                     let order: RequestOrder = req.body_json().await?;
-                    let res = format!("Confirmed: {:?}", &order);
+                    let res = form_response(ProcessStatus::Success, "Processed", &order.to_str());
                     handler.lock().unwrap().order_queue.push_back(order);
                     Ok(res)
                 } else {
-                    let res = format!("[SHUTDOWN] Server shutting down. Stop serving requests");
+                    let res = form_response(ProcessStatus::Failed, "Server shutting down. Stop serving requests", "{}");
                     Ok(res)
                 }
             }
@@ -145,41 +154,23 @@ async fn main() -> tide::Result<()> {
                         _ => Card::Pikachu,
                     };
 
-                    let mut res = String::from("");
+                    let mut data = String::from("");
+                    data.push('{');
                     if let Some(list) = handler.lock().unwrap().get_latest_trades(&param) {
-                        let header_begin = format!(
-                            "============================================= {:?} =============================================",
-                            param
-                        );
-                        let header_end = format!(
-                            "\n============================================= {:?} =============================================",
-                            param
-                        );
-
-                        res += &header_begin;
-
                         if list.len() > 0 {
                             for elem in list {
-                                let row = format!(
-                                    "\n|{}|buy_side_id: {}|sell_side_id: {}|px: {}|vol: {}|",
-                                    elem.get_tx_time(),
-                                    elem.get_buy_side_id(),
-                                    elem.get_sell_side_id(),
-                                    elem.get_tx_price(),
-                                    elem.get_tx_vol(),
-                                );
-                                res += &row;
+                                data += &elem.to_str();
+                                data.push(',');
                             }
-                        } else {
-                            res += "\nNone";
                         }
-
-                        res += &header_end;
                     }
+                    data.push('}');
 
+                    let msg = format!("view the latest 50 trades on card - {:?}", param);
+                    let res = form_response(ProcessStatus::Success, &msg, &data);
                     Ok(res.to_string())
                 } else {
-                    let res = format!("[SHUTDOWN] Server shutting down. Stop serving requests");
+                    let res = form_response(ProcessStatus::Failed, "Server shutting down. Stop serving requests", "{}");
                     Ok(res)
                 }
             }
@@ -191,45 +182,37 @@ async fn main() -> tide::Result<()> {
             let handler = Arc::clone(&order_checker.clone());
             async move {
                 if !STOP.load(Ordering::Acquire) {
-                    let id = req.param("id").unwrap().parse::<i32>().unwrap();
-                    let mut res = String::from("");
+                    let id: i32 = 0;
+                    if let Ok(s) = req.param("id") {
+                        if let Ok(id) = s.parse::<i32>() {
 
-                    if let Some(stats) = handler.lock().unwrap().get_latest_orders(&id) {
-                    
-                        let header_begin = format!(
-                            "============================================= Trader[{}] =============================================",
-                            &id
-                        );
-                        let header_end = format!(
-                            "\n============================================= Trader[{}] =============================================",
-                            &id
-                        );
-
-                        res += &header_begin;               
-
-                        if stats.len() > 0 {
-                            for elem in stats {
-                                let row = format!(
-                                    "\n|{}|side: {:?}|order_px: {}|vol: {}|card: {:?}|status: {:?}|",
-                                    elem.get_tm(),
-                                    elem.get_side(),
-                                    elem.get_order_px(),
-                                    elem.get_vol(),
-                                    elem.get_card(),
-                                    elem.get_status()
-                                );
-                                res += &row;
-                            }               
                         } else {
-                            res += "\nNone";
+                            let res = form_response(ProcessStatus::Failed, "Digit Parsed Error", "{}");
+                            return Ok(res)
                         }
-                        
-                        res += &header_end;
+                    } else {
+                        let res = form_response(ProcessStatus::Failed, "InvalidDigit", "{}");
+                        return Ok(res)
                     }
 
-                    Ok(res.to_string())
+                    let mut data = String::from("");
+
+                    data.push('{');
+                    if let Some(stats) = handler.lock().unwrap().get_latest_orders(&id) {             
+                        if stats.len() > 0 {
+                            for elem in stats {
+                                data.push_str(&elem.to_str());
+                                data.push(',');
+                            }               
+                        }
+                    }
+                    data.push('}');
+
+                    let msg = format!("view the status of latest 50 orders of trader {}", id);
+                    let res = form_response(ProcessStatus::Success, &msg, &data);
+                    Ok(res)
                 } else {
-                    let res = format!("[SHUTDOWN] Server shutting down. Stop serving requests");
+                    let res = form_response(ProcessStatus::Failed, "Server shutting down. Stop serving requests", "{}");
                     Ok(res)
                 }
             }
