@@ -3,7 +3,7 @@ use postgres_types::{FromSql, ToSql};
 use tide::prelude::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum ProcessStatus {
     Success,
     Failed,
@@ -120,4 +120,43 @@ impl RequestOrder {
         res.push('}');
         res
     }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Rsp<T> {
+    code: ProcessStatus,
+    msg: String,
+    data: T,
+}
+
+impl<T> Rsp<T> {
+    pub fn new(code: ProcessStatus, msg: String, data: T) -> Self {
+        Self {
+            code, 
+            msg, 
+            data,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HistoryParam {
+    id: i32,
+    date: String,
+}
+
+impl HistoryParam {
+    pub fn get_id(&self) -> &i32 {
+        &self.id
+    }
+
+    pub fn get_date(&self) -> &str {
+        &self.date
+    }
+}
+
+#[derive(Serialize,Deserialize)]
+pub struct StatusParam {
+    uuid: Uuid,
+    date: String,
 }

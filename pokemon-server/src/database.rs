@@ -285,4 +285,24 @@ impl Database {
                                                 order by rt.tm;", &[&side, &card]).unwrap();
         res
     }
+
+    #[requires(self.is_connected(), "database should be connected")]
+    #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
+    #[requires(self.table_exist("public", "trade_table"), "trade_table should be created in the database")]
+    #[ensures(true)]
+    #[invariant(true)] 
+    pub fn get_trade_history(&mut self, id: &i32, date: &str) -> Vec<Row> {
+        let res = self.client.query("select tt.buy_side_id, tt.sell_side_id, tt.tx_price, tt.tx_vol, tt.card
+                                     from trade_table tt
+                                     where tt.buy_uuid in ( select rt.uuid 
+                                                            from request_table rt
+                                                            where rt.trader_id = $1 and to_char(rt.tm, 'YYYY-MM-DD') like $2 )
+                                     union
+                                     select tt.buy_side_id, tt.sell_side_id, tt.tx_price, tt.tx_vol, tt.card
+                                     from trade_table tt
+                                     where tt.sell_uuid in ( select rt.uuid 
+                                                             from request_table rt
+                                                             where rt.trader_id = $1 and to_char(rt.tm, 'YYYY-MM-DD') like $2 )", &[&id, &date]).unwrap();
+        res
+    }
 }

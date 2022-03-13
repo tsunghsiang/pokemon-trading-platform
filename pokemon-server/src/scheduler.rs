@@ -1,7 +1,7 @@
 use crate::data_type::{Card, OrderStatus, ProcessResult, RequestOrder, Side};
 use crate::database;
 use crate::status_board::{Stats, StatusBoard};
-use crate::trade_board::{Trade, TradeBoard};
+use crate::trade_board::{Trade, TradeBoard, TradeHistory};
 use crate::tx_board::{Tag, TxBoard, CardBoard, Volume};
 
 use postgres::Row;
@@ -142,6 +142,21 @@ impl Scheduler {
                 if let Some(stat) = self.status_board.get_stat(id, &e) {
                     res.push_back(stat);
                 }
+            }
+            Some(res)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_trade_history(&mut self, id: &i32, date: &str) -> Option<LinkedList<TradeHistory>> {
+        let mut res = LinkedList::<TradeHistory>::new();
+        let history = self.db.get_trade_history(id, date);
+        
+        if history.len() > 0 {
+            for row in history {
+                let elem = TradeHistory::new(row.get("buy_side_id"), row.get("sell_side_id"), row.get("tx_price"), row.get("tx_vol"), row.get("card"));
+                res.push_back(elem);
             }
             Some(res)
         } else {

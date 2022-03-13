@@ -2,15 +2,16 @@
 extern crate ini;
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use data_type::{Card, RequestOrder, ProcessStatus};
+use data_type::{Card, RequestOrder, ProcessStatus, Rsp, HistoryParam};
 use scheduler::Scheduler;
 use std::sync::{Arc, Mutex};
-use tide::Request;
+use tide::{Body, Request, Response, StatusCode};
 use std::env;
 use settings::Settings;
 use std::thread;
 use std::time::Duration;
 use ctrlc;
+use chrono::Local;
 
 mod settings;
 mod data_type;
@@ -82,15 +83,6 @@ pub fn signal_handler(terminator: &std::sync::Arc<std::sync::Mutex<scheduler::Sc
     std::thread::spawn(move || shudown_checker(&handler));    
 }
 
-pub fn form_response(status: ProcessStatus, msg: &str, data: &str) -> String {
-    let mut rsp = String::from("");
-    let res = format!(" status: '{:?}', message: {}, data: {} ", status, msg, data);
-    rsp.push('{');
-    rsp.push_str(&res);
-    rsp.push('}');
-    rsp
-}
-
 #[async_std::main]
 async fn main() -> tide::Result<()> {
     // Obtain config file path
@@ -106,7 +98,10 @@ async fn main() -> tide::Result<()> {
     let scheduler = Arc::new(Mutex::new(Scheduler::new()));
     scheduler.lock().unwrap().recover();
     
-    let (req_checker, trade_checker, order_checker, activator, terminator) = (
+    let (req_checker, trade_checker, order_checker, activator, terminator, trade_history, order_history, order_status) = (
+        scheduler.clone(),
+        scheduler.clone(),
+        scheduler.clone(),
         scheduler.clone(),
         scheduler.clone(),
         scheduler.clone(),
@@ -129,11 +124,15 @@ async fn main() -> tide::Result<()> {
             async move {
                 if !STOP.load(Ordering::Acquire) {
                     let order: RequestOrder = req.body_json().await?;
-                    let res = form_response(ProcessStatus::Success, "Processed", &order.to_str());
+                    let mut res = Response::new(StatusCode::Ok);
+                    let rsp = Rsp::<RequestOrder>::new(ProcessStatus::Success, String::from("Processed"), order);
                     handler.lock().unwrap().order_queue.push_back(order);
+                    res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 } else {
-                    let res = form_response(ProcessStatus::Failed, "Server shutting down. Stop serving requests", "{}");
+                    let mut res = Response::new(StatusCode::BadGateway);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("{}"));
+                    res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
             }
@@ -142,7 +141,7 @@ async fn main() -> tide::Result<()> {
     server
         .at("/api/pokemon/trade/:card")
         .get(move |req: Request<()>| {
-            let handler = Arc::clone(&trade_checker.clone());
+            let handler = Arc::clone(&trade_checker);
             async move {
                 if !STOP.load(Ordering::Acquire) {
                     let card = req.param("card").unwrap_or("None");
@@ -155,7 +154,6 @@ async fn main() -> tide::Result<()> {
                     };
 
                     let mut data = String::from("");
-                    data.push('{');
                     if let Some(list) = handler.lock().unwrap().get_latest_trades(&param) {
                         if list.len() > 0 {
                             for elem in list {
@@ -164,13 +162,16 @@ async fn main() -> tide::Result<()> {
                             }
                         }
                     }
-                    data.push('}');
 
                     let msg = format!("view the latest 50 trades on card - {:?}", param);
-                    let res = form_response(ProcessStatus::Success, &msg, &data);
-                    Ok(res.to_string())
+                    let mut res = Response::new(StatusCode::Ok);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, format!("[{}]", data));
+                    res.set_body(Body::from_json(&rsp)?);
+                    Ok(res)
                 } else {
-                    let res = form_response(ProcessStatus::Failed, "Server shutting down. Stop serving requests", "{}");
+                    let mut res = Response::new(StatusCode::BadGateway);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
             }
@@ -179,7 +180,7 @@ async fn main() -> tide::Result<()> {
     server
         .at("/api/pokemon/order/:id")
         .get(move |req: Request<()>| {
-            let handler = Arc::clone(&order_checker.clone());
+            let handler = Arc::clone(&order_checker);
             async move {
                 if !STOP.load(Ordering::Acquire) {
                     let id: i32 = 0;
@@ -187,17 +188,19 @@ async fn main() -> tide::Result<()> {
                         if let Ok(id) = s.parse::<i32>() {
 
                         } else {
-                            let res = form_response(ProcessStatus::Failed, "Digit Parsed Error", "{}");
+                            let mut res = Response::new(StatusCode::BadRequest);
+                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Digit Parsed Error"), String::from("[]"));
+                            res.set_body(Body::from_json(&rsp)?);
                             return Ok(res)
                         }
                     } else {
-                        let res = form_response(ProcessStatus::Failed, "InvalidDigit", "{}");
+                        let mut res = Response::new(StatusCode::BadRequest);
+                        let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("InvalidDigit"), String::from("[]"));
+                        res.set_body(Body::from_json(&rsp)?);
                         return Ok(res)
                     }
 
                     let mut data = String::from("");
-
-                    data.push('{');
                     if let Some(stats) = handler.lock().unwrap().get_latest_orders(&id) {             
                         if stats.len() > 0 {
                             for elem in stats {
@@ -206,18 +209,65 @@ async fn main() -> tide::Result<()> {
                             }               
                         }
                     }
-                    data.push('}');
 
                     let msg = format!("view the status of latest 50 orders of trader {}", id);
-                    let res = form_response(ProcessStatus::Success, &msg, &data);
+                    let mut res = Response::new(StatusCode::Ok);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, format!("[{}]", data));
+                    res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 } else {
-                    let res = form_response(ProcessStatus::Failed, "Server shutting down. Stop serving requests", "{}");
+                    let mut res = Response::new(StatusCode::BadGateway);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
             }
         });
 
+    server
+        .at("/api/pokemon/trade/history")
+        .get(move |req: Request<()>|{
+            let handler = Arc::clone(&trade_history);
+            async move {
+                if !STOP.load(Ordering::Acquire) {
+
+                    match req.query::<HistoryParam>() {
+                        Ok(param) => {
+                            let mut res = Response::new(StatusCode::Ok);
+                            let msg = format!("view the trade history of trader {} on {}", param.get_id(), param.get_date());
+
+                            if let Some(history) = handler.lock().unwrap().get_trade_history(param.get_id(), param.get_date()) {
+                                let mut data = String::from("");
+                                for elem in history {
+                                    data.push_str(&elem.to_str());
+                                    data.push(',');
+                                }
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, format!("[{}]", data));
+                                res.set_body(Body::from_json(&rsp)?);
+                            } else {
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("[]"));
+                                res.set_body(Body::from_json(&rsp)?);
+                            }
+                            
+                            Ok(res)
+                        },
+                        Err(e) => {
+                            let mut res = Response::new(StatusCode::BadRequest);
+                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("[]"));
+                            res.set_body(Body::from_json(&rsp)?);
+                            Ok(res)
+                        }
+                    }
+
+                } else {
+                    let mut res = Response::new(StatusCode::BadGateway);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    res.set_body(Body::from_json(&rsp)?);
+                    Ok(res)
+                }
+            }
+        });
+    
     server.listen(srv).await?;
     Ok(())
 }

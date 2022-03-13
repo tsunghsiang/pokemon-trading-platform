@@ -60,6 +60,62 @@ impl Trade {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct TradeHistory {
+    buy_side: i32,
+    sell_side: i32,
+    tx_price: f64,
+    tx_vol: i32,
+    card: Card,
+}
+
+impl TradeHistory {
+    pub fn new(
+        buy_side: i32,
+        sell_side: i32,
+        tx_price: f64,
+        tx_vol: i32,
+        card: Card
+    ) -> Self {
+        Self {
+            buy_side,
+            sell_side,
+            tx_price,
+            tx_vol,
+            card
+        }
+    }
+
+    pub fn get_buy_side_id(&self) -> &i32 {
+        &self.buy_side
+    }
+
+    pub fn get_sell_side_id(&self) -> &i32 {
+        &self.sell_side
+    }
+
+    pub fn get_tx_price(&self) -> &f64 {
+        &self.tx_price
+    }
+
+    pub fn get_tx_vol(&self) -> &i32 {
+        &self.tx_vol
+    }
+
+    pub fn get_card(&self) -> &Card {
+        &self.card
+    }
+
+    pub fn to_str(&self) -> String {
+        let mut res = String::from("");
+        let fmt = format!(" buy_side: {}, sell_side: {}, tx_price: {}, tx_vol: {} card: {:?} ", self.buy_side, self.sell_side, self.tx_price, self.tx_vol, self.card);
+        res.push('{');
+        res.push_str(&fmt);
+        res.push('}');
+        res
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct TradeBoard {
     board: HashMap<Card, LinkedList<Trade>>,
