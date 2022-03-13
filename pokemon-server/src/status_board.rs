@@ -1,5 +1,6 @@
 use crate::data_type::{Card, OrderStatus, Side};
 use chrono::{DateTime, Utc};
+use tide::prelude::{Deserialize, Serialize};
 use std::collections::{HashMap, LinkedList};
 use std::option::Option;
 use uuid::Uuid;
@@ -179,6 +180,38 @@ impl StatusBoard {
 
     pub fn get_latest_uuids(&self, id: &i32) -> Option<&LinkedList<Uuid>> {
         self.status_list.get(id)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Status {
+    uuid: Uuid,
+    status: OrderStatus,
+}
+
+impl Status {
+    pub fn new(uuid: Uuid, status: OrderStatus) -> Self {
+        Self {
+            uuid,
+            status
+        }
+    }
+
+    pub fn get_uuid(&self) -> &Uuid {
+        &self.uuid
+    }
+    
+    pub fn get_status(&self) -> &OrderStatus {
+        &self.status
+    }
+
+    pub fn to_str(&self) -> String {
+        let mut res = String::from("");
+        let fmt = format!(" uuid: {}, status: {:?} ", self.uuid, self.status);
+        res.push('{');
+        res.push_str(&fmt);
+        res.push('}');
+        res
     }
 }
 

@@ -289,6 +289,7 @@ impl Database {
     #[requires(self.is_connected(), "database should be connected")]
     #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
     #[requires(self.table_exist("public", "trade_table"), "trade_table should be created in the database")]
+    #[requires(id >= &0)]
     #[ensures(true)]
     #[invariant(true)] 
     pub fn get_trade_history(&mut self, id: &i32, date: &str) -> Vec<Row> {
@@ -305,4 +306,29 @@ impl Database {
                                                              where rt.trader_id = $1 and to_char(rt.tm, 'YYYY-MM-DD') like $2 )", &[&id, &date]).unwrap();
         res
     }
+
+    #[requires(self.is_connected(), "database should be connected")]
+    #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
+    #[requires(id >= &0)]
+    #[ensures(true)]
+    #[invariant(true)] 
+    pub fn get_request_history(&mut self, id: &i32, date: &str) -> Vec<Row> {
+        let res = self.client.query("select * 
+                                     from request_table rt
+                                     where rt.trader_id = $1 and to_char(rt.tm, 'YYYY-MM-DD') like $2", &[&id, &date]).unwrap();
+        res
+    }
+
+    #[requires(self.is_connected(), "database should be connected")]
+    #[requires(self.table_exist("public", "request_table"), "request_table should be created in the database")]
+    #[requires(self.table_exist("public", "status_table"), "status_table should be created in the database")]
+    #[ensures(ret.len() <= 1)]
+    #[invariant(true)] 
+    pub fn get_status_history(&mut self, uuid: &Uuid) -> Vec<Row> {
+        let res = self.client.query("select st.uuid, st.status 
+                                     from status_table st
+                                     where st.uuid = $1", &[&uuid]).unwrap();
+        res
+    }
+
 }

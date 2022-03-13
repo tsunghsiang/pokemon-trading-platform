@@ -19,7 +19,7 @@ pub enum ProcessResult {
     // add other status here based on real conditions
 }
 
-#[derive(Debug, ToSql, FromSql, Clone, PartialEq)]
+#[derive(Debug, ToSql, FromSql, Clone, PartialEq, Deserialize, Serialize)]
 #[postgres(name = "orderstatus")]
 pub enum OrderStatus {
     #[postgres(name = "Confirmed")]
@@ -158,5 +158,10 @@ impl HistoryParam {
 #[derive(Serialize,Deserialize)]
 pub struct StatusParam {
     uuid: Uuid,
-    date: String,
+}
+
+impl StatusParam {
+    pub fn get_uuid(&self) -> &Uuid {
+        &self.uuid
+    }
 }

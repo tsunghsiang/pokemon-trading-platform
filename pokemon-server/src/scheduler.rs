@@ -1,6 +1,6 @@
 use crate::data_type::{Card, OrderStatus, ProcessResult, RequestOrder, Side};
 use crate::database;
-use crate::status_board::{Stats, StatusBoard};
+use crate::status_board::{Stats, StatusBoard, Status};
 use crate::trade_board::{Trade, TradeBoard, TradeHistory};
 use crate::tx_board::{Tag, TxBoard, CardBoard, Volume};
 
@@ -69,7 +69,7 @@ impl Scheduler {
                                     break ProcessResult::TxBoardUpdateFail;
                                 }
 
-                                update_traded_boards(&mut self.trade_board, &mut self.status_board, &mut self.db, &sell_side_id, &(px as f64), &req, Side::Sell, &uuid, &card);
+                                update_traded_boards(&mut self.trade_board, &mut self.status_board, &mut self.db, &sell_side_id, &(px as f64), &req, Side::Buy, &uuid, &card);
                                 break ProcessResult::TxFilled;
                             } else {
                                 px += 1;
@@ -149,14 +149,43 @@ impl Scheduler {
         }
     }
 
-    pub fn get_trade_history(&mut self, id: &i32, date: &str) -> Option<LinkedList<TradeHistory>> {
+    pub fn get_trade_record(&mut self, id: &i32, date: &str) -> Option<LinkedList<TradeHistory>> {
         let mut res = LinkedList::<TradeHistory>::new();
         let history = self.db.get_trade_history(id, date);
-        
+
         if history.len() > 0 {
             for row in history {
                 let elem = TradeHistory::new(row.get("buy_side_id"), row.get("sell_side_id"), row.get("tx_price"), row.get("tx_vol"), row.get("card"));
                 res.push_back(elem);
+            }
+            Some(res)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_request_record(&mut self, id: &i32, date: &str) -> Option<LinkedList<RequestOrder>> {
+        let mut res = LinkedList::<RequestOrder>::new();
+        let history = self.db.get_request_history(id, date);
+
+        if history.len() > 0 {
+            for row in history {
+                let elem = RequestOrder::new(row.get("uuid"), row.get("tm"), row.get("side"), row.get("order_px"), row.get("vol"), row.get("card"), row.get("trader_id"));
+                res.push_back(elem);
+            }
+            Some(res)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_status_record(&mut self, uuid: &Uuid) -> Option<LinkedList<Status>> {
+        let mut res = LinkedList::<Status>::new();
+        let record = self.db.get_status_history(uuid);
+        if record.len() > 0 {
+            for elem in record {
+                let status = Status::new(elem.get("uuid"), elem.get("status"));
+                res.push_back(status);
             }
             Some(res)
         } else {
@@ -315,7 +344,7 @@ pub fn update_traded_status_board(req: &RequestOrder, side: Side, board: &mut St
     let stats = Stats::new(
         req.get_uuid(),
         Utc::now(),
-        Side::Sell,
+        side,
         req.get_order_px(),
         req.get_vol(),
         req.get_card(),

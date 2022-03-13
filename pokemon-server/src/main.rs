@@ -2,7 +2,8 @@
 extern crate ini;
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use data_type::{Card, RequestOrder, ProcessStatus, Rsp, HistoryParam};
+use data_type::{Card, RequestOrder, ProcessStatus, Rsp, HistoryParam, StatusParam};
+use status_board::Status;
 use scheduler::Scheduler;
 use std::sync::{Arc, Mutex};
 use tide::{Body, Request, Response, StatusCode};
@@ -11,7 +12,6 @@ use settings::Settings;
 use std::thread;
 use std::time::Duration;
 use ctrlc;
-use chrono::Local;
 
 mod settings;
 mod data_type;
@@ -98,7 +98,7 @@ async fn main() -> tide::Result<()> {
     let scheduler = Arc::new(Mutex::new(Scheduler::new()));
     scheduler.lock().unwrap().recover();
     
-    let (req_checker, trade_checker, order_checker, activator, terminator, trade_history, order_history, order_status) = (
+    let (req_checker, trade_checker, order_checker, activator, terminator, trade_history, order_history, status_checker) = (
         scheduler.clone(),
         scheduler.clone(),
         scheduler.clone(),
@@ -236,7 +236,51 @@ async fn main() -> tide::Result<()> {
                             let mut res = Response::new(StatusCode::Ok);
                             let msg = format!("view the trade history of trader {} on {}", param.get_id(), param.get_date());
 
-                            if let Some(history) = handler.lock().unwrap().get_trade_history(param.get_id(), param.get_date()) {
+                            if let Some(history) = handler.lock().unwrap().get_trade_record(param.get_id(), param.get_date()) {
+                                let mut data = String::from("");
+                                for elem in history {
+                                    data.push_str(&elem.to_str());
+                                    data.push(',');
+                                }
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, format!("[{}]", data));
+                                res.set_body(Body::from_json(&rsp)?);
+                            } else {
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("[]"));
+                                res.set_body(Body::from_json(&rsp)?);
+                            }
+
+                            Ok(res)
+                        },
+                        Err(e) => {
+                            let mut res = Response::new(StatusCode::BadRequest);
+                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("[]"));
+                            res.set_body(Body::from_json(&rsp)?);
+                            Ok(res)
+                        }
+                    }
+
+                } else {
+                    let mut res = Response::new(StatusCode::BadGateway);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    res.set_body(Body::from_json(&rsp)?);
+                    Ok(res)
+                }
+            }
+        });
+    
+    server
+        .at("/api/pokemon/request/history")
+        .get(move |req: Request<()>|{
+            let handler = Arc::clone(&order_history);
+            async move {
+                if !STOP.load(Ordering::Acquire) {
+
+                    match req.query::<HistoryParam>() {
+                        Ok(param) => {
+                            let mut res = Response::new(StatusCode::Ok);
+                            let msg = format!("view the request history of trader {} on {}", param.get_id(), param.get_date());
+
+                            if let Some(history) = handler.lock().unwrap().get_request_record(param.get_id(), param.get_date()) {
                                 let mut data = String::from("");
                                 for elem in history {
                                     data.push_str(&elem.to_str());
@@ -267,7 +311,47 @@ async fn main() -> tide::Result<()> {
                 }
             }
         });
-    
+
+    server
+        .at("/api/pokemon/order/status")
+        .get(move |req: Request<()>|{
+            let handler = Arc::clone(&status_checker);
+            async move {
+                if !STOP.load(Ordering::Acquire) {
+
+                    match req.query::<StatusParam>() {
+                        Ok(param) => {
+                            let mut res = Response::new(StatusCode::Ok);
+                            if let Some(mut record) = handler.lock().unwrap().get_status_record(param.get_uuid()) {
+                                if let Some(elem) = record.pop_back() {
+                                    let msg = format!("view the status of the order with uuid: {}", param.get_uuid());
+                                    let rsp = Rsp::<Status>::new(ProcessStatus::Success, msg, elem);
+                                    res.set_body(Body::from_json(&rsp)?);
+                                }
+                            } else {
+                                let msg = format!("the status of the order with uuid: {} not found", param.get_uuid());
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("{}"));
+                                res.set_body(Body::from_json(&rsp)?);
+                            }
+                            
+                            Ok(res)
+                        },
+                        Err(e) => {
+                            let mut res = Response::new(StatusCode::BadRequest);
+                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("{}"));
+                            res.set_body(Body::from_json(&rsp)?);
+                            Ok(res)
+                        }
+                    }
+
+                } else {
+                    let mut res = Response::new(StatusCode::BadGateway);
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("{}"));
+                    res.set_body(Body::from_json(&rsp)?);
+                    Ok(res)
+                }
+            }
+        });        
     server.listen(srv).await?;
     Ok(())
 }
