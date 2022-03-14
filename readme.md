@@ -25,7 +25,7 @@ GET /api/pokemon/request/history?id=:id&date=:date - view the request history of
 
 GET /api/pokemon/order/status?uuid=:uuid - view the status a specific order with unique identifier
 
-# Trading Contraints
+# Trading Scenario
 1. card = { Pikachu, Bulbasaur, Charmander, Squirtle }
 2. 1.00 <= price if a card <= 10.00 USD
 3. total 10K users
