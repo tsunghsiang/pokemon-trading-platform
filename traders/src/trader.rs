@@ -1,6 +1,7 @@
 use crate::data_type::{Card, Side};
 use crate::settings::Settings;
 use chrono::prelude::*;
+use chrono::Local;
 use rand::Rng;
 use std::{thread, time};
 use uuid::Uuid;
@@ -18,7 +19,7 @@ impl Trader {
     pub fn send_request(&self) {
         let wait_tm = time::Duration::from_millis(1000);
         loop {
-            let op: i32 = rand::thread_rng().gen_range(0..3);
+            let op: i32 = rand::thread_rng().gen_range(0..5);
             match op {
                 0 => {
                     match self.post_order() {
@@ -34,6 +35,18 @@ impl Trader {
                 },
                 2 => {
                     match self.get_order() {
+                        Ok(_) => {},
+                        Err(e) => { println!("Kind: {}", e.kind()); }
+                    }
+                },
+                3 => {
+                    match self.get_trade_record() {
+                        Ok(_) => {},
+                        Err(e) => { println!("Kind: {}", e.kind()); }
+                    }
+                },
+                4 => {
+                    match self.get_request_record() {
                         Ok(_) => {},
                         Err(e) => { println!("Kind: {}", e.kind()); }
                     }
@@ -97,5 +110,23 @@ impl Trader {
         let rsp: String = ureq::get(&url).call()?.into_string()?;
         println!("{}", &rsp);
         Ok(())
+    }
+
+    fn get_trade_record(&self) -> Result<(), ureq::Error> {
+        let tm = Local::now();
+        let date = tm.format("%Y-%m-%d");
+        let url: String = format!("http://{}/api/pokemon/trade/history?id={}&date={}", &self.config.get_connected_url(), self.id, date);
+        let rsp: String = ureq::get(&url).call()?.into_string()?;
+        println!("{}", &rsp);
+        Ok(())        
+    }
+
+    fn get_request_record(&self) -> Result<(), ureq::Error> {
+        let tm = Local::now();
+        let date = tm.format("%Y-%m-%d");
+        let url: String = format!("http://{}/api/pokemon/request/history?id={}&date={}", &self.config.get_connected_url(), self.id, date);
+        let rsp: String = ureq::get(&url).call()?.into_string()?;
+        println!("{}", &rsp);
+        Ok(())        
     }
 }
