@@ -51,7 +51,10 @@ In conclusion, the transaction rules are as follows:
 7. Self-trade is disallowed
 
 # Logical Architecture
-![pokemon logical architecture](./images/pokemon-logical-architecture.drawio.png)
+
+<p align="center">
+  <img src="./images/pokemon-logical-architecture.drawio.png">
+</p>
 
 From the [previous section](#trading-scenario), we could simulate several roles of the trading scenario into the object relationships. First of all, traders send [various requests](#restful-api-specifications) to the server. In order for the synchronization issue, I adopted an order queue ensuring requests are processed orderly. As you see, there is a scheduler consists of different components stated as the table below.
 
@@ -76,8 +79,9 @@ pub  fn  recover(&mut  self){...}
 ```
 
 # DB Schema
-
-![pokemon database schema](./images/pokemon-db-schema.png)
+<p align="center">
+  <img src="./images/pokemon-db-schema.png">
+</p>
 
 |Table Name|request_table|status_table|trade_table|
 |-|-|-|-|
@@ -169,10 +173,38 @@ curl -X GET localhost:8080/api/pokemon/trade/:card
 curl -X GET localhost:8080/api/pokemon/order/:id
 
 # Docker Configuration
+<p align="center">
+  <img src="./images/pokemon-docker-config.png">
+</p>
+The above figure shows docker containers' dependency based on the execution order. ```pokemon-db``` represents a postgresql database handling data storing tasks. And then the ```pokemon-server``` is launched to serve clients spawned from ```traders```. Remember to consult the [Prerequisites](#prerequisites) section for installing associative tools to view containers' status.
 
-![Docker Container Relation](./images/pokemon-docker-config.png)
+Activate corresponding containers in order: ```pokemon-db``` -> ```pokemon-server``` -> ```traders```
 
-# Run on Docker Container
+There are 3 docker-compose files in the root directory: [```docker-compose-db.yml```](./docker-compose-db.yml), [```docker-compose-server.yml```](./docker-compose-server.yml), and [```docker-compose-clients.yml```](./docker-compose-clients.yml), each of which contains the necessary configuration to enable the communication among these containers.
+
+### [1]  [```docker-compose-db.yml```](./docker-compose-db.yml)
+Let's investigate [```docker-compose-db.yml```](./docker-compose-db.yml), I read the [Postgres - Docker Hub](https://hub.docker.com/_/postgres) to edit the database container's configuration. Note that for ```ports``` field, I mapped port: 5432 in the container to the port: 5432 on the docker host. And ```environment``` variables abide by what I had set up in [local configuration](#local-configuration).
+```yml
+services:
+  # Build a Postgresql DB Service
+  database:
+    image: postgres:latest
+    container_name: pokemon-db
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: pokemon
+    networks:
+      - pokemon-net
+```
+
+### [2] [```docker-compose-server.yml```](./docker-compose-server.yml)
+### [3] [```docker-compose-clients.yml```](./docker-compose-clients.yml)
+
+
+# Run on Docker Containers
 # Todo List
 - [x] Restful API
 - [x] Relational database (PostgreSQL, MySQL, ...)
