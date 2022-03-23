@@ -176,6 +176,7 @@ curl -X GET localhost:8080/api/pokemon/order/:id
 <p align="center">
   <img src="./images/pokemon-docker-config.png">
 </p>
+
 The above figure shows docker containers' dependency based on the execution order. ```pokemon-db``` represents a postgresql database handling data storing tasks. And then the ```pokemon-server``` is launched to serve clients spawned from ```traders```. Remember to consult the [Prerequisites](#prerequisites) section for installing associative tools to view containers' status.
 
 Activate corresponding containers in order: ```pokemon-db``` -> ```pokemon-server``` -> ```traders```
