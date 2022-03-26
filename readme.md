@@ -305,5 +305,5 @@ docker-compose -f docker-compose-clients.yml up
 - [ ] OpenAPI (Swagger)
 - [x] Set up configurations using environment variables
 - [x] Refactoring
-- [ ] Readme 
-- [ ] Optimize docker activation speed
+- [] Readme 
+- [x] Optimize docker activation speed
