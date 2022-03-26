@@ -202,10 +202,99 @@ services:
 ```
 
 ### [2] [```docker-compose-server.yml```](./docker-compose-server.yml)
-### [3] [```docker-compose-clients.yml```](./docker-compose-clients.yml)
+No matter from the logical architecture or from the containers' relationships, we have known that ```pokemon-server``` depends on the service provided by ```pokemon-db```. Therefore we could see ```depend_on``` field in the file; the values exactly corresponds to the service name, ```database```, in [```docker-compose-db.yml```](./docker-compose-db.yml)
 
+```yml
+services:
+  # Build a Pokemon Server Service
+  server:
+    container_name: pokemon-server
+    build: 
+      context: ./pokemon-server/
+      dockerfile: dockerfile
+    working_dir: /server
+    volumes:
+      - .:/server
+    ports:
+      - 8080:8080
+    networks:
+      - pokemon-net
+      
+# Remeber to execute: docker network create pokemon-net
+networks:
+  pokemon-net:
+    external: true
+```
+Note that ```build``` field indicates where the context operates and which file it uses. Here it executes the [dockerfile](./pokemon-server/dockerfile) to simulate the server beahvior in the created container.
+
+### [3] [```docker-compose-clients.yml```](./docker-compose-clients.yml)
+Lastly, let's survey the simplest one. When ```pokemon-db``` and ```pokemon-server``` are prepared, the ```clients``` could be launched to generate as many clients as they want to exchange their own cards on the platform. Identically, its ```build``` fields refers to the context it operates on as welll as the [file](./traders/dockerfile) it is going to execute.
+
+```yml
+services:
+  # Build traders
+  clients:
+    container_name: traders
+    build:
+      context: ./traders/
+      dockerfile: dockerfile
+    networks:
+      - pokemon-net
+      
+# Remeber to execute: docker network create pokemon-net
+networks:
+  pokemon-net:
+    external: true
+```
+
+[4] [docker.ini](./pokemon-server/dockerfile) of ```pokemon-server```
+<p align="center">
+  <img src="./images/docker-cfg-of-server.png">
+</p>
+
+Note that there are some difference between docker's and local's configuration. In a docker container, we want to communiate with a virtual host, so that ip fields are replaced with services' names and are automatically resolved.
+
+[5] [docker.ini](./traders/dockerfile) of ```traders```
+<p align="center">
+  <img src="./images/docker-cfg-of-traders.png">
+</p>
+
+Also, the ```traders``` container's clients need to resolve ```server``` ip within a container.
 
 # Run on Docker Containers
+Before launching any container, we should know that each one is an independent object. If we want to bridge the network communication among them, ```network``` attribute needs to be configured. Anyone could go through the [Networking Overview](https://docs.docker.com/network/) for futher information.
+```yml
+networks:
+  pokemon-net:
+    external: true
+```
+### [1] Create a Network Bridge
+Note that we all have seen the common attribute among all *.yml files. And these 3 containers are going to communicate through the bridged network ```pokemon-net```. Therefore we have to create the network beforehand, so that these containers are assured to link together.
+```docker
+docker network create pokemon-net
+```
+And check whether the network has been created by
+```docker
+docker network ls
+```
+### [2] Enable a ```pokemon-db``` Container
+We have explained the content of [database](./docker-compose-db.yml) .yml file, so that a database container could be enabled by the command as below:
+```docker
+docker-compose -f docker-compose-db.yml up
+```
+For more information of docker-compose, please refer to [this](https://docs.docker.com/compose/).
+### [3] Enable a ```pokemon-server``` Container
+After a database container has been enabled, we are going to activate the ```pokemon-server``` container.
+```yml
+docker-compose -f docker-compose-server.yml up
+```
+
+### [4] Enable a ```traders``` Container
+Finally, launch a ```traders``` container to spawn as many client as you want to interact.
+```yml
+docker-compose -f docker-compose-clients.yml up
+```
+
 # Todo List
 - [x] Restful API
 - [x] Relational database (PostgreSQL, MySQL, ...)

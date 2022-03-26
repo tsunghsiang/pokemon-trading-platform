@@ -7,8 +7,6 @@ services:
     build:
       context: ./traders/
       dockerfile: dockerfile
-    depends_on:
-      - server
     networks:
       - pokemon-net
 
