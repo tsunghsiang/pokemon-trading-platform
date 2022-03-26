@@ -202,7 +202,7 @@ services:
 ```
 
 ### [2] [```docker-compose-server.yml```](./docker-compose-server.yml)
-No matter from the logical architecture or from the containers' relationships, we have known that ```pokemon-server``` depends on the service provided by ```pokemon-db```. Therefore we could see ```depend_on``` field in the file; the values exactly corresponds to the service name, ```database```, in [```docker-compose-db.yml```](./docker-compose-db.yml)
+No matter from the logical architecture or from the containers' relationships, ```pokemon-server``` depends on the service provided by ```pokemon-db```. Note that ```build``` field indicates where the context operates and which file it uses. Here it executes the [dockerfile](./pokemon-server/dockerfile) to simulate the server beahvior in the created container.
 
 ```yml
 services:
@@ -225,7 +225,6 @@ networks:
   pokemon-net:
     external: true
 ```
-Note that ```build``` field indicates where the context operates and which file it uses. Here it executes the [dockerfile](./pokemon-server/dockerfile) to simulate the server beahvior in the created container.
 
 ### [3] [```docker-compose-clients.yml```](./docker-compose-clients.yml)
 Lastly, let's survey the simplest one. When ```pokemon-db``` and ```pokemon-server``` are prepared, the ```clients``` could be launched to generate as many clients as they want to exchange their own cards on the platform. Identically, its ```build``` fields refers to the context it operates on as welll as the [file](./traders/dockerfile) it is going to execute.
