@@ -285,13 +285,13 @@ docker-compose -f docker-compose-db.yml up
 For more information of docker-compose, please refer to [this](https://docs.docker.com/compose/).
 ### [3] Enable a ```pokemon-server``` Container
 After a database container has been enabled, we are going to activate the ```pokemon-server``` container.
-```yml
+```docker
 docker-compose -f docker-compose-server.yml up
 ```
 
 ### [4] Enable a ```traders``` Container
 Finally, launch a ```traders``` container to spawn as many client as you want to interact.
-```yml
+```docker
 docker-compose -f docker-compose-clients.yml up
 ```
 
