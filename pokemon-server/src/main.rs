@@ -131,7 +131,7 @@ async fn main() -> tide::Result<()> {
                     Ok(res)
                 } else {
                     let mut res = Response::new(StatusCode::BadGateway);
-                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("{}"));
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[{}]"));
                     res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
@@ -170,7 +170,7 @@ async fn main() -> tide::Result<()> {
                     Ok(res)
                 } else {
                     let mut res = Response::new(StatusCode::BadGateway);
-                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[{}]"));
                     res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
@@ -217,7 +217,7 @@ async fn main() -> tide::Result<()> {
                     Ok(res)
                 } else {
                     let mut res = Response::new(StatusCode::BadGateway);
-                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[{}]"));
                     res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
@@ -245,7 +245,7 @@ async fn main() -> tide::Result<()> {
                                 let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, format!("[{}]", data));
                                 res.set_body(Body::from_json(&rsp)?);
                             } else {
-                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("[]"));
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("[{}]"));
                                 res.set_body(Body::from_json(&rsp)?);
                             }
 
@@ -253,7 +253,7 @@ async fn main() -> tide::Result<()> {
                         },
                         Err(e) => {
                             let mut res = Response::new(StatusCode::BadRequest);
-                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("[]"));
+                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("[{}]"));
                             res.set_body(Body::from_json(&rsp)?);
                             Ok(res)
                         }
@@ -261,7 +261,7 @@ async fn main() -> tide::Result<()> {
 
                 } else {
                     let mut res = Response::new(StatusCode::BadGateway);
-                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[{}]"));
                     res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }
@@ -289,7 +289,7 @@ async fn main() -> tide::Result<()> {
                                 let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, format!("[{}]", data));
                                 res.set_body(Body::from_json(&rsp)?);
                             } else {
-                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("[]"));
+                                let rsp = Rsp::<String>::new(ProcessStatus::Success, msg, String::from("[{}]"));
                                 res.set_body(Body::from_json(&rsp)?);
                             }
                             
@@ -297,7 +297,7 @@ async fn main() -> tide::Result<()> {
                         },
                         Err(e) => {
                             let mut res = Response::new(StatusCode::BadRequest);
-                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("[]"));
+                            let rsp = Rsp::<String>::new(ProcessStatus::Failed, e.to_string(), String::from("[{}]"));
                             res.set_body(Body::from_json(&rsp)?);
                             Ok(res)
                         }
@@ -305,7 +305,7 @@ async fn main() -> tide::Result<()> {
 
                 } else {
                     let mut res = Response::new(StatusCode::BadGateway);
-                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[]"));
+                    let rsp = Rsp::<String>::new(ProcessStatus::Failed, String::from("Server shutting down. Stop serving requests"), String::from("[{}]"));
                     res.set_body(Body::from_json(&rsp)?);
                     Ok(res)
                 }

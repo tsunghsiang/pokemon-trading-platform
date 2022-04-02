@@ -13,17 +13,8 @@ Remember to be ready with the following requirements if you would like to run th
 - [Postgres Database 14.1](https://www.postgresql.org/download/)
 
 # Restful API Specifications
-POST /api/pokemon/card - buy/sell a card
 
-GET /api/pokemon/trade/:card - view the latest 50 trades on each kind of card
-
-GET /api/pokemon/order/:id - view the status of latest 50 orders of a specific trader
-
-GET /api/pokemon/trade/history?id=:id&date=:date - view the trade history of a specific trader on a specified date
-
-GET /api/pokemon/request/history?id=:id&date=:date - view the request history of a specific trader on a specified date
-
-GET /api/pokemon/order/status?uuid=:uuid - view the status a specific order with unique identifier
+Please refer to the [Pokemon Trading API Specifications](https://app.swaggerhub.com/apis/tsunghsiang/platform/1.0.0) for reading the API descriptions. Moreover, it provides mock api for you to test up front.
 
 # Trading Scenario
 
@@ -164,14 +155,6 @@ To launch the ```trader```, follow the command as below when your configuration 
 cargo run --bin traders ./traders/config/local.ini
 ```
 
-# API Tests in Linux Command
-
-curl localhost:8080/api/pokemon/card -X POST -H "Content-type:application/json" -d @test-script/post.json
-
-curl -X GET localhost:8080/api/pokemon/trade/:card
-
-curl -X GET localhost:8080/api/pokemon/order/:id
-
 # Docker Configuration
 <p align="center">
   <img src="./images/pokemon-docker-config.png">
@@ -301,8 +284,8 @@ docker-compose -f docker-compose-clients.yml up
 - [x] Graceful shutdown (server & client)
 - [x] Testing
 - [x] Multithreading
-- [ ] OpenAPI (Swagger)
+- [x] OpenAPI (Swagger)
 - [x] Set up configurations using environment variables
 - [x] Refactoring
-- [] Readme 
+- [x] Readme 
 - [x] Optimize docker activation speed
